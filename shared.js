@@ -1,5 +1,5 @@
 // ===== Oceanus Data Layer — Google Sheets Backend =====
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbxke_cnErKqeAr7H2-y0OaT5MZm1oVE49AS6Qy0eIGjegQUAbM2MdJJ0QuQfVzrfRCE/exec';
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbw9ersQyd99tkYVrfzZ7fSak1a3YFEMiJ6YsTJodwXoTpbrRgWyH7H9YjK10TUQIgp7/exec';
 
 const Cache = {
   get: (key) => { try { return JSON.parse(localStorage.getItem('oc_' + key)); } catch { return null; } },
@@ -8,19 +8,24 @@ const Cache = {
 };
 
 async function gasGet(tab) {
-  const res = await fetch(`${GAS_URL}?action=read&tab=${tab}`);
+  const res = await fetch(`${GAS_URL}?action=read&tab=${tab}`, {
+    method: 'GET',
+    redirect: 'follow',
+  });
   const json = await res.json();
   if (json.status !== 'ok') throw new Error('Read failed: ' + tab);
   return json.data;
 }
 
-async function gasPost(tab, data) {
-  const res = await fetch(GAS_URL, {
+async function gasPost(tab, objects) {
+  // no-cors: write goes through but response is opaque — update cache directly
+  fetch(GAS_URL, {
     method: 'POST',
-    body: JSON.stringify({ action: 'write', tab, data }),
+    mode: 'no-cors',
+    headers: { 'Content-Type': 'text/plain' },
+    body: JSON.stringify({ action: 'write', tab, data: objects }),
   });
-  const json = await res.json();
-  if (json.status !== 'ok') throw new Error('Write failed: ' + tab);
+  // cache updated immediately so UI is instant
 }
 
 const Schemas = {
@@ -88,29 +93,29 @@ const DB = {
   },
 
   async saveTab(tab, objects) {
-    Cache.set(tab, objects);
-    await gasPost(tab, objectsToRows(tab, objects));
+    Cache.set(tab, objects);             // instant UI update
+    gasPost(tab, objectsToRows(tab, objects)); // async write to Sheets
   },
 
-  // ── Cars ──
+  // Cars
   async getCars()          { return DB.fetchTab('cars'); },
   async setCars(d)         { return DB.saveTab('cars', d); },
   async addCar(car)        { const a = await DB.getCars(); car.id = Date.now(); a.push(car); await DB.setCars(a); return car; },
   async deleteCar(id)      { const a = await DB.getCars(); await DB.setCars(a.filter(c => c.id != id)); },
 
-  // ── Locations ──
+  // Locations
   async getLocations()     { return DB.fetchTab('locations'); },
   async setLocations(d)    { return DB.saveTab('locations', d); },
   async addLocation(loc)   { const a = await DB.getLocations(); loc.id = Date.now(); a.push(loc); await DB.setLocations(a); return loc; },
   async deleteLocation(id) { const a = await DB.getLocations(); await DB.setLocations(a.filter(l => l.id != id)); },
 
-  // ── Costs ──
+  // Costs
   async getCosts()         { return DB.fetchTab('costs'); },
   async setCosts(d)        { return DB.saveTab('costs', d); },
   async addCost(cost)      { const a = await DB.getCosts(); cost.id = Date.now(); cost.date = cost.date || new Date().toISOString().split('T')[0]; a.push(cost); await DB.setCosts(a); return cost; },
   async deleteCost(id)     { const a = await DB.getCosts(); await DB.setCosts(a.filter(c => c.id != id)); },
 
-  // ── Operations ──
+  // Operations
   async getOperations()    { return DB.fetchTab('operations'); },
   async setOperations(d)   { return DB.saveTab('operations', d); },
   async addOperation(op)   { const a = await DB.getOperations(); op.id = Date.now(); op.date = op.date || new Date().toISOString().split('T')[0]; a.push(op); await DB.setOperations(a); return op; },
@@ -130,7 +135,9 @@ const DB = {
       };
       const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
       const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob); a.download = 'oceanus_backup_' + new Date().toISOString().split('T')[0] + '.json'; a.click();
+      a.href = URL.createObjectURL(blob);
+      a.download = 'oceanus_backup_' + new Date().toISOString().split('T')[0] + '.json';
+      a.click();
     } finally { hideLoader(); }
   },
 
