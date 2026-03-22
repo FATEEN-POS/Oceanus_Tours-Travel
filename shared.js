@@ -1,5 +1,5 @@
 // ===== Oceanus Data Layer — Google Sheets Backend =====
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbyhq_i3-xsALHcw2sIBKLkNaRXw1fziLS5kQc5s9JoB5j6Qrm_0e9ZR83kMmpsPjOQO/exec';
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbxke_cnErKqeAr7H2-y0OaT5MZm1oVE49AS6Qy0eIGjegQUAbM2MdJJ0QuQfVzrfRCE/exec';
 
 const Cache = {
   get: (key) => { try { return JSON.parse(localStorage.getItem('oc_' + key)); } catch { return null; } },
