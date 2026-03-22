@@ -1,1 +1,336 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<script>
+// ===== Oceanus Data Layer =====
+// All data stored in localStorage — no database needed
 
+const DB = {
+  get: (key) => {
+    try { return JSON.parse(localStorage.getItem('oceanus_' + key)) || []; }
+    catch { return []; }
+  },
+  set: (key, val) => localStorage.setItem('oceanus_' + key, JSON.stringify(val)),
+
+  getCars: () => DB.get('cars'),
+  setCars: (d) => DB.set('cars', d),
+  addCar: (car) => { const a = DB.getCars(); car.id = Date.now(); a.push(car); DB.setCars(a); return car; },
+  deleteCar: (id) => DB.setCars(DB.getCars().filter(c => c.id !== id)),
+
+  getLocations: () => DB.get('locations'),
+  setLocations: (d) => DB.set('locations', d),
+  addLocation: (loc) => { const a = DB.getLocations(); loc.id = Date.now(); a.push(loc); DB.setLocations(a); return loc; },
+  deleteLocation: (id) => DB.setLocations(DB.getLocations().filter(l => l.id !== id)),
+
+  getCosts: () => DB.get('costs'),
+  setCosts: (d) => DB.set('costs', d),
+  addCost: (cost) => { const a = DB.getCosts(); cost.id = Date.now(); cost.date = cost.date || new Date().toISOString().split('T')[0]; a.push(cost); DB.setCosts(a); return cost; },
+  deleteCost: (id) => DB.setCosts(DB.getCosts().filter(c => c.id !== id)),
+
+  getOperations: () => DB.get('operations'),
+  setOperations: (d) => DB.set('operations', d),
+  addOperation: (op) => { const a = DB.getOperations(); op.id = Date.now(); op.date = op.date || new Date().toISOString().split('T')[0]; a.push(op); DB.setOperations(a); return op; },
+  deleteOperation: (id) => DB.setOperations(DB.getOperations().filter(o => o.id !== id)),
+
+  exportToJSON: () => {
+    const data = {
+      cars: DB.getCars(),
+      locations: DB.getLocations(),
+      costs: DB.getCosts(),
+      operations: DB.getOperations(),
+      exportedAt: new Date().toISOString()
+    };
+    const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'oceanus_backup_' + new Date().toISOString().split('T')[0] + '.json';
+    a.click();
+  },
+
+  importFromJSON: (file) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const data = JSON.parse(e.target.result);
+          if (data.cars) DB.setCars(data.cars);
+          if (data.locations) DB.setLocations(data.locations);
+          if (data.costs) DB.setCosts(data.costs);
+          if (data.operations) DB.setOperations(data.operations);
+          resolve();
+        } catch { reject(new Error('ملف غير صالح')); }
+      };
+      reader.readAsText(file);
+    });
+  },
+
+  seedDemo: () => {
+    if (DB.getCars().length > 0) return;
+    const cars = [
+      { id: 1, plate: 'أ ب ج 1234', type: 'باص', capacity: 50, driver: 'محمد أحمد', status: 'متاح' },
+      { id: 2, plate: 'د هـ و 5678', type: 'ميكروباص', capacity: 14, driver: 'خالد محمود', status: 'في رحلة' },
+      { id: 3, plate: 'ز ح ط 9012', type: 'باص', capacity: 45, driver: 'عمر حسن', status: 'صيانة' },
+      { id: 4, plate: 'ي ك ل 3456', type: 'سيارة خاصة', capacity: 7, driver: 'سامي علي', status: 'متاح' },
+    ];
+    const locations = [
+      { id: 1, name: 'أبو سمبل', type: 'داخلي', distance: 890, duration: '2 يوم' },
+      { id: 2, name: 'السد العالي', type: 'داخلي', distance: 880, duration: '1 يوم' },
+      { id: 3, name: 'فيله', type: 'داخلي', distance: 885, duration: '1 يوم' },
+      { id: 4, name: 'المسله', type: 'داخلي', distance: 870, duration: '1 يوم' },
+    ];
+    const operations = [
+      { id: 1, date: '2025-03-01', carId: 1, locationId: 1, supplier: 'أبو سمبل', revenue: 5000, notes: 'رحلة ناجحة' },
+      { id: 2, date: '2025-03-03', carId: 2, locationId: 2, supplier: 'السد', revenue: 3500, notes: '' },
+      { id: 3, date: '2025-03-05', carId: 1, locationId: 3, supplier: 'فيله', revenue: 4200, notes: 'مجموعة كبيرة' },
+      { id: 4, date: '2025-03-10', carId: 4, locationId: 4, supplier: 'المسله', revenue: 2800, notes: '' },
+    ];
+    const costs = [
+      { id: 1, date: '2025-03-01', type: 'ثابت', description: 'إيجار مكتب', amount: 3000, carId: null },
+      { id: 2, date: '2025-03-01', type: 'متغير', description: 'بنزين رحلة أبو سمبل', amount: 800, carId: 1 },
+      { id: 3, date: '2025-03-03', type: 'متغير', description: 'بنزين رحلة السد', amount: 450, carId: 2 },
+      { id: 4, date: '2025-03-05', type: 'أخري', description: 'مطبوعات وإعلانات', amount: 600, carId: null },
+      { id: 5, date: '2025-03-05', type: 'متغير', description: 'بنزين رحلة فيله', amount: 700, carId: 1 },
+      { id: 6, date: '2025-03-10', type: 'متغير', description: 'بنزين رحلة المسله', amount: 350, carId: 4 },
+    ];
+    DB.setCars(cars);
+    DB.setLocations(locations);
+    DB.setOperations(operations);
+    DB.setCosts(costs);
+  }
+};
+
+// Seed demo data on first load
+DB.seedDemo();
+
+</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Oceanus — العربيات</title>
+<link rel="stylesheet" href="style.css">
+<style>
+.cars-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1.2rem;
+  margin-top: 1.5rem;
+}
+.car-card {
+  background: white;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+  transition: all 0.25s;
+}
+.car-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-md); }
+
+.car-top {
+  background: var(--ocean-mid);
+  padding: 1.2rem 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.car-plate {
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: white;
+  letter-spacing: 1px;
+}
+.car-body { padding: 1.2rem 1.5rem; }
+.car-row { display: flex; justify-content: space-between; margin-bottom: 0.5rem; font-size: 0.88rem; }
+.car-row span:first-child { color: var(--text-light); }
+.car-row span:last-child { font-weight: 600; color: var(--text-dark); }
+.car-actions { padding: 0 1.5rem 1.2rem; display: flex; gap: 0.5rem; }
+
+.status-متاح { background: #eafaf1; color: #27ae60; }
+.status-في\ رحلة { background: #fff0ea; color: var(--coral); }
+.status-صيانة { background: #fef9e7; color: #e67e22; }
+</style>
+</head>
+<body>
+
+<header class="header">
+  <div class="logo">
+    <span class="logo-main">Oceanus</span>
+    <span class="logo-sub">Tours & Travel</span>
+  </div>
+</header>
+
+<nav class="main-nav">
+  <a href="index.html"><span class="nav-icon">🏠</span> الرئيسية</a>
+  <a href="cars.html" class="active"><span class="nav-icon">🚌</span> العربيات</a>
+  <a href="location.html"><span class="nav-icon">📍</span> التشغيلات</a>
+  <a href="cost.html"><span class="nav-icon">💸</span> المصاريف</a>
+  <a href="report.html"><span class="nav-icon">📊</span> التقارير</a>
+</nav>
+
+<main class="container">
+
+  <div class="flex-between mb-3 fade-in">
+    <h1 class="page-title" style="margin-bottom:0">🚌 العربيات</h1>
+    <button class="btn btn-coral btn-lg" onclick="openModal()">+ إضافة عربية</button>
+  </div>
+
+  <div class="stats-grid fade-in" id="carStats"></div>
+
+  <div class="cars-grid fade-in" id="carsGrid"></div>
+
+</main>
+
+<!-- Modal -->
+<div class="modal-overlay" id="modalOverlay" onclick="closeIfBg(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <span id="modalTitle">إضافة عربية جديدة</span>
+      <button class="close-btn" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group">
+          <label>رقم اللوحة *</label>
+          <input class="form-control" id="fPlate" placeholder="مثال: أ ب ج 1234">
+        </div>
+        <div class="form-group">
+          <label>نوع العربية *</label>
+          <select class="form-control" id="fType">
+            <option>باص</option>
+            <option>ميكروباص</option>
+            <option>سيارة خاصة</option>
+            <option>فان</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>السعة (عدد الركاب)</label>
+          <input class="form-control" id="fCap" type="number" placeholder="50">
+        </div>
+        <div class="form-group">
+          <label>اسم السائق</label>
+          <input class="form-control" id="fDriver" placeholder="اسم السائق">
+        </div>
+        <div class="form-group">
+          <label>الحالة</label>
+          <select class="form-control" id="fStatus">
+            <option>متاح</option>
+            <option>في رحلة</option>
+            <option>صيانة</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-coral" onclick="saveCar()">💾 حفظ</button>
+      <button class="btn btn-ghost" onclick="closeModal()">إلغاء</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+
+<script>
+let editId = null;
+
+function fmt(n) { return Number(n||0).toLocaleString('ar-EG') + ' ج.م'; }
+
+function showToast(msg, type='') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show ' + type;
+  setTimeout(() => t.className = 'toast', 2500);
+}
+
+function renderStats() {
+  const cars = DB.getCars();
+  const avail = cars.filter(c=>c.status==='متاح').length;
+  const busy  = cars.filter(c=>c.status==='في رحلة').length;
+  const maint = cars.filter(c=>c.status==='صيانة').length;
+  document.getElementById('carStats').innerHTML = `
+    <div class="stat-card"><div class="stat-icon">🚌</div><div class="stat-info"><div class="stat-value">${cars.length}</div><div class="stat-label">إجمالي العربيات</div></div></div>
+    <div class="stat-card success"><div class="stat-icon">✅</div><div class="stat-info"><div class="stat-value">${avail}</div><div class="stat-label">متاحة</div></div></div>
+    <div class="stat-card coral"><div class="stat-icon">🛣️</div><div class="stat-info"><div class="stat-value">${busy}</div><div class="stat-label">في رحلة</div></div></div>
+    <div class="stat-card warning"><div class="stat-icon">🔧</div><div class="stat-info"><div class="stat-value">${maint}</div><div class="stat-label">في الصيانة</div></div></div>
+  `;
+}
+
+function renderCars() {
+  const cars = DB.getCars();
+  const ops = DB.getOperations();
+  const grid = document.getElementById('carsGrid');
+  if (!cars.length) {
+    grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">🚌</div><p>لا توجد عربيات مضافة بعد</p></div>';
+    return;
+  }
+  grid.innerHTML = cars.map(car => {
+    const carOps = ops.filter(o => o.carId == car.id);
+    const totalRev = carOps.reduce((s,o)=>s+Number(o.revenue||0),0);
+    return `
+    <div class="car-card fade-in">
+      <div class="car-top">
+        <div class="car-plate">${car.plate}</div>
+        <span class="badge badge-${car.status==='متاح'?'success':car.status==='في رحلة'?'warning':'danger'} status-${car.status}">${car.status}</span>
+      </div>
+      <div class="car-body">
+        <div class="car-row"><span>النوع</span><span>${car.type}</span></div>
+        <div class="car-row"><span>السعة</span><span>${car.capacity || '—'} راكب</span></div>
+        <div class="car-row"><span>السائق</span><span>${car.driver || '—'}</span></div>
+        <div class="car-row"><span>عدد الرحلات</span><span>${carOps.length} رحلة</span></div>
+        <div class="car-row"><span>إجمالي الإيرادات</span><span class="text-success">${fmt(totalRev)}</span></div>
+      </div>
+      <div class="car-actions">
+        <button class="btn btn-ghost btn-sm" onclick="editCar(${car.id})">✏️ تعديل</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteCar(${car.id})">🗑️ حذف</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function openModal(id=null) {
+  editId = id;
+  const car = id ? DB.getCars().find(c=>c.id===id) : null;
+  document.getElementById('modalTitle').textContent = id ? 'تعديل العربية' : 'إضافة عربية جديدة';
+  document.getElementById('fPlate').value  = car?.plate || '';
+  document.getElementById('fType').value   = car?.type || 'باص';
+  document.getElementById('fCap').value    = car?.capacity || '';
+  document.getElementById('fDriver').value = car?.driver || '';
+  document.getElementById('fStatus').value = car?.status || 'متاح';
+  document.getElementById('modalOverlay').classList.add('open');
+}
+
+function closeModal() { document.getElementById('modalOverlay').classList.remove('open'); editId = null; }
+function closeIfBg(e) { if(e.target===e.currentTarget) closeModal(); }
+
+function editCar(id) { openModal(id); }
+
+function saveCar() {
+  const plate = document.getElementById('fPlate').value.trim();
+  if (!plate) { showToast('❌ أدخل رقم اللوحة', 'error'); return; }
+  const data = {
+    plate,
+    type:     document.getElementById('fType').value,
+    capacity: document.getElementById('fCap').value,
+    driver:   document.getElementById('fDriver').value,
+    status:   document.getElementById('fStatus').value,
+  };
+  if (editId) {
+    const cars = DB.getCars().map(c => c.id===editId ? {...c,...data} : c);
+    DB.setCars(cars);
+    showToast('✅ تم تعديل العربية', 'success');
+  } else {
+    DB.addCar(data);
+    showToast('✅ تمت الإضافة بنجاح', 'success');
+  }
+  closeModal();
+  renderStats(); renderCars();
+}
+
+function deleteCar(id) {
+  if (!confirm('هل تريد حذف هذه العربية؟')) return;
+  DB.deleteCar(id);
+  showToast('🗑️ تم الحذف', '');
+  renderStats(); renderCars();
+}
+
+renderStats(); renderCars();
+</script>
+</body>
+</html>

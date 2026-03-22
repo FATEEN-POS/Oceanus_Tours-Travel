@@ -1,1 +1,353 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<script>
+// ===== Oceanus Data Layer =====
+// All data stored in localStorage — no database needed
 
+const DB = {
+  get: (key) => {
+    try { return JSON.parse(localStorage.getItem('oceanus_' + key)) || []; }
+    catch { return []; }
+  },
+  set: (key, val) => localStorage.setItem('oceanus_' + key, JSON.stringify(val)),
+
+  getCars: () => DB.get('cars'),
+  setCars: (d) => DB.set('cars', d),
+  addCar: (car) => { const a = DB.getCars(); car.id = Date.now(); a.push(car); DB.setCars(a); return car; },
+  deleteCar: (id) => DB.setCars(DB.getCars().filter(c => c.id !== id)),
+
+  getLocations: () => DB.get('locations'),
+  setLocations: (d) => DB.set('locations', d),
+  addLocation: (loc) => { const a = DB.getLocations(); loc.id = Date.now(); a.push(loc); DB.setLocations(a); return loc; },
+  deleteLocation: (id) => DB.setLocations(DB.getLocations().filter(l => l.id !== id)),
+
+  getCosts: () => DB.get('costs'),
+  setCosts: (d) => DB.set('costs', d),
+  addCost: (cost) => { const a = DB.getCosts(); cost.id = Date.now(); cost.date = cost.date || new Date().toISOString().split('T')[0]; a.push(cost); DB.setCosts(a); return cost; },
+  deleteCost: (id) => DB.setCosts(DB.getCosts().filter(c => c.id !== id)),
+
+  getOperations: () => DB.get('operations'),
+  setOperations: (d) => DB.set('operations', d),
+  addOperation: (op) => { const a = DB.getOperations(); op.id = Date.now(); op.date = op.date || new Date().toISOString().split('T')[0]; a.push(op); DB.setOperations(a); return op; },
+  deleteOperation: (id) => DB.setOperations(DB.getOperations().filter(o => o.id !== id)),
+
+  exportToJSON: () => {
+    const data = {
+      cars: DB.getCars(),
+      locations: DB.getLocations(),
+      costs: DB.getCosts(),
+      operations: DB.getOperations(),
+      exportedAt: new Date().toISOString()
+    };
+    const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'oceanus_backup_' + new Date().toISOString().split('T')[0] + '.json';
+    a.click();
+  },
+
+  importFromJSON: (file) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const data = JSON.parse(e.target.result);
+          if (data.cars) DB.setCars(data.cars);
+          if (data.locations) DB.setLocations(data.locations);
+          if (data.costs) DB.setCosts(data.costs);
+          if (data.operations) DB.setOperations(data.operations);
+          resolve();
+        } catch { reject(new Error('ملف غير صالح')); }
+      };
+      reader.readAsText(file);
+    });
+  },
+
+  seedDemo: () => {
+    if (DB.getCars().length > 0) return;
+    const cars = [
+      { id: 1, plate: 'أ ب ج 1234', type: 'باص', capacity: 50, driver: 'محمد أحمد', status: 'متاح' },
+      { id: 2, plate: 'د هـ و 5678', type: 'ميكروباص', capacity: 14, driver: 'خالد محمود', status: 'في رحلة' },
+      { id: 3, plate: 'ز ح ط 9012', type: 'باص', capacity: 45, driver: 'عمر حسن', status: 'صيانة' },
+      { id: 4, plate: 'ي ك ل 3456', type: 'سيارة خاصة', capacity: 7, driver: 'سامي علي', status: 'متاح' },
+    ];
+    const locations = [
+      { id: 1, name: 'أبو سمبل', type: 'داخلي', distance: 890, duration: '2 يوم' },
+      { id: 2, name: 'السد العالي', type: 'داخلي', distance: 880, duration: '1 يوم' },
+      { id: 3, name: 'فيله', type: 'داخلي', distance: 885, duration: '1 يوم' },
+      { id: 4, name: 'المسله', type: 'داخلي', distance: 870, duration: '1 يوم' },
+    ];
+    const operations = [
+      { id: 1, date: '2025-03-01', carId: 1, locationId: 1, supplier: 'أبو سمبل', revenue: 5000, notes: 'رحلة ناجحة' },
+      { id: 2, date: '2025-03-03', carId: 2, locationId: 2, supplier: 'السد', revenue: 3500, notes: '' },
+      { id: 3, date: '2025-03-05', carId: 1, locationId: 3, supplier: 'فيله', revenue: 4200, notes: 'مجموعة كبيرة' },
+      { id: 4, date: '2025-03-10', carId: 4, locationId: 4, supplier: 'المسله', revenue: 2800, notes: '' },
+    ];
+    const costs = [
+      { id: 1, date: '2025-03-01', type: 'ثابت', description: 'إيجار مكتب', amount: 3000, carId: null },
+      { id: 2, date: '2025-03-01', type: 'متغير', description: 'بنزين رحلة أبو سمبل', amount: 800, carId: 1 },
+      { id: 3, date: '2025-03-03', type: 'متغير', description: 'بنزين رحلة السد', amount: 450, carId: 2 },
+      { id: 4, date: '2025-03-05', type: 'أخري', description: 'مطبوعات وإعلانات', amount: 600, carId: null },
+      { id: 5, date: '2025-03-05', type: 'متغير', description: 'بنزين رحلة فيله', amount: 700, carId: 1 },
+      { id: 6, date: '2025-03-10', type: 'متغير', description: 'بنزين رحلة المسله', amount: 350, carId: 4 },
+    ];
+    DB.setCars(cars);
+    DB.setLocations(locations);
+    DB.setOperations(operations);
+    DB.setCosts(costs);
+  }
+};
+
+// Seed demo data on first load
+DB.seedDemo();
+
+</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Oceanus — المصاريف</title>
+<link rel="stylesheet" href="style.css">
+<style>
+.cost-tabs { display: flex; gap: 0; background: var(--sand); border-radius: var(--radius-sm); padding: 4px; margin-bottom: 1.5rem; width: fit-content; }
+.cost-tab {
+  padding: 0.5rem 1.2rem;
+  border: none;
+  background: transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: 'Tajawal', sans-serif;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-light);
+  transition: all 0.2s;
+}
+.cost-tab.active { background: var(--ocean-mid); color: white; box-shadow: var(--shadow-sm); }
+</style>
+</head>
+<body>
+
+<header class="header">
+  <div class="logo">
+    <span class="logo-main">Oceanus</span>
+    <span class="logo-sub">Tours & Travel</span>
+  </div>
+</header>
+
+<nav class="main-nav">
+  <a href="index.html"><span class="nav-icon">🏠</span> الرئيسية</a>
+  <a href="cars.html"><span class="nav-icon">🚌</span> العربيات</a>
+  <a href="location.html"><span class="nav-icon">📍</span> التشغيلات</a>
+  <a href="cost.html" class="active"><span class="nav-icon">💸</span> المصاريف</a>
+  <a href="report.html"><span class="nav-icon">📊</span> التقارير</a>
+</nav>
+
+<main class="container">
+
+  <div class="flex-between mb-3 fade-in" style="flex-wrap:wrap;gap:1rem">
+    <h1 class="page-title" style="margin-bottom:0">💸 المصاريف</h1>
+    <button class="btn btn-coral btn-lg" onclick="openModal()">+ إضافة مصروف</button>
+  </div>
+
+  <div class="stats-grid fade-in" id="costStats"></div>
+
+  <div class="cost-tabs fade-in">
+    <button class="cost-tab active" onclick="setTab('all',this)">الكل</button>
+    <button class="cost-tab" onclick="setTab('ثابت',this)">ثابتة</button>
+    <button class="cost-tab" onclick="setTab('متغير',this)">متغيرة</button>
+    <button class="cost-tab" onclick="setTab('أخري',this)">أخرى</button>
+  </div>
+
+  <div class="card fade-in">
+    <div class="card-body" style="padding:0">
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>التاريخ</th>
+              <th>النوع</th>
+              <th>البيان</th>
+              <th>العربية</th>
+              <th>المبلغ</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="costsBody"></tbody>
+          <tfoot id="costsFoot"></tfoot>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<!-- Modal -->
+<div class="modal-overlay" id="modalOverlay" onclick="closeIfBg(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <span id="modalTitle">إضافة مصروف جديد</span>
+      <button class="close-btn" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group">
+          <label>التاريخ *</label>
+          <input type="date" class="form-control" id="fDate">
+        </div>
+        <div class="form-group">
+          <label>نوع المصروف *</label>
+          <select class="form-control" id="fType" onchange="toggleCarField()">
+            <option value="ثابت">ثابت</option>
+            <option value="متغير">متغير</option>
+            <option value="أخري">أخرى</option>
+          </select>
+        </div>
+        <div class="form-group" style="grid-column:1/-1">
+          <label>البيان / الوصف *</label>
+          <input class="form-control" id="fDesc" placeholder="مثال: إيجار مكتب / بنزين رحلة">
+        </div>
+        <div class="form-group">
+          <label>المبلغ (ج.م) *</label>
+          <input type="number" class="form-control" id="fAmount" placeholder="0">
+        </div>
+        <div class="form-group" id="carFieldWrap">
+          <label>العربية (اختياري)</label>
+          <select class="form-control" id="fCar">
+            <option value="">غير محدد</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-coral" onclick="saveCost()">💾 حفظ</button>
+      <button class="btn btn-ghost" onclick="closeModal()">إلغاء</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+
+<script>
+let editId = null;
+let currentTab = 'all';
+
+function fmt(n) { return Number(n||0).toLocaleString('ar-EG') + ' ج.م'; }
+function showToast(msg, type='') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show ' + type;
+  setTimeout(() => t.className = 'toast', 2500);
+}
+
+const typeColor = { 'ثابت': 'info', 'متغير': 'warning', 'أخري': 'danger' };
+
+function renderStats() {
+  const costs = DB.getCosts();
+  const fixed   = costs.filter(c=>c.type==='ثابت').reduce((s,c)=>s+Number(c.amount||0),0);
+  const variable= costs.filter(c=>c.type==='متغير').reduce((s,c)=>s+Number(c.amount||0),0);
+  const other   = costs.filter(c=>c.type==='أخري').reduce((s,c)=>s+Number(c.amount||0),0);
+  const total   = fixed + variable + other;
+  document.getElementById('costStats').innerHTML = `
+    <div class="stat-card warning"><div class="stat-icon">💸</div><div class="stat-info"><div class="stat-value" style="font-size:1.1rem">${fmt(total)}</div><div class="stat-label">إجمالي المصاريف</div></div></div>
+    <div class="stat-card"><div class="stat-icon">📌</div><div class="stat-info"><div class="stat-value" style="font-size:1.1rem">${fmt(fixed)}</div><div class="stat-label">مصاريف ثابتة</div></div></div>
+    <div class="stat-card coral"><div class="stat-icon">🔄</div><div class="stat-info"><div class="stat-value" style="font-size:1.1rem">${fmt(variable)}</div><div class="stat-label">مصاريف متغيرة</div></div></div>
+    <div class="stat-card success"><div class="stat-icon">📦</div><div class="stat-info"><div class="stat-value" style="font-size:1.1rem">${fmt(other)}</div><div class="stat-label">مصاريف أخرى</div></div></div>
+  `;
+}
+
+function setTab(tab, el) {
+  currentTab = tab;
+  document.querySelectorAll('.cost-tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  renderCosts();
+}
+
+function renderCosts() {
+  const cars = DB.getCars();
+  let costs = [...DB.getCosts()].sort((a,b)=>b.date?.localeCompare(a.date||''));
+  if (currentTab !== 'all') costs = costs.filter(c=>c.type===currentTab);
+  const total = costs.reduce((s,c)=>s+Number(c.amount||0),0);
+
+  document.getElementById('costsBody').innerHTML = costs.length ? costs.map((c,i) => {
+    const car = cars.find(x=>x.id==c.carId);
+    return `<tr class="fade-in">
+      <td class="text-muted">${i+1}</td>
+      <td>${c.date}</td>
+      <td><span class="badge badge-${typeColor[c.type]||'info'}">${c.type}</span></td>
+      <td>${c.description}</td>
+      <td>${car ? car.plate : '—'}</td>
+      <td class="text-danger fw-bold">${fmt(c.amount)}</td>
+      <td>
+        <div class="flex-gap">
+          <button class="btn btn-ghost btn-sm" onclick="editCost(${c.id})">✏️</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteCost(${c.id})">🗑️</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('') : '<tr><td colspan="7"><div class="empty-state"><div class="empty-icon">💸</div><p>لا توجد مصاريف</p></div></td></tr>';
+
+  document.getElementById('costsFoot').innerHTML = `<tr><td colspan="5" class="fw-bold">الإجمالي</td><td class="text-danger fw-bold">${fmt(total)}</td><td></td></tr>`;
+}
+
+function openModal(id=null) {
+  editId = id;
+  const cost = id ? DB.getCosts().find(c=>c.id===id) : null;
+  document.getElementById('modalTitle').textContent = id ? 'تعديل المصروف' : 'إضافة مصروف جديد';
+  document.getElementById('fDate').value = cost?.date || new Date().toISOString().split('T')[0];
+  document.getElementById('fType').value = cost?.type || 'ثابت';
+  document.getElementById('fDesc').value = cost?.description || '';
+  document.getElementById('fAmount').value = cost?.amount || '';
+
+  const cars = DB.getCars();
+  document.getElementById('fCar').innerHTML = '<option value="">غير محدد</option>' + cars.map(c=>`<option value="${c.id}" ${cost?.carId==c.id?'selected':''}>${c.plate}</option>`).join('');
+  if (cost?.carId) document.getElementById('fCar').value = cost.carId;
+
+  toggleCarField();
+  document.getElementById('modalOverlay').classList.add('open');
+}
+
+function closeModal() { document.getElementById('modalOverlay').classList.remove('open'); editId = null; }
+function closeIfBg(e) { if(e.target===e.currentTarget) closeModal(); }
+
+function toggleCarField() {
+  const type = document.getElementById('fType').value;
+  document.getElementById('carFieldWrap').style.display = type === 'متغير' ? '' : 'none';
+}
+
+function saveCost() {
+  const date = document.getElementById('fDate').value;
+  const desc = document.getElementById('fDesc').value.trim();
+  const amount = document.getElementById('fAmount').value;
+  if (!date || !desc || !amount) { showToast('❌ أدخل جميع الحقول المطلوبة', 'error'); return; }
+  const data = {
+    date, type: document.getElementById('fType').value,
+    description: desc, amount: Number(amount),
+    carId: document.getElementById('fCar').value || null
+  };
+  if (editId) {
+    DB.setCosts(DB.getCosts().map(c=>c.id===editId?{...c,...data}:c));
+    showToast('✅ تم التعديل', 'success');
+  } else {
+    DB.addCost(data);
+    showToast('✅ تمت الإضافة', 'success');
+  }
+  closeModal();
+  renderStats(); renderCosts();
+}
+
+function editCost(id) { openModal(id); }
+function deleteCost(id) {
+  if (!confirm('حذف هذا المصروف؟')) return;
+  DB.deleteCost(id);
+  showToast('🗑️ تم الحذف');
+  renderStats(); renderCosts();
+}
+
+// Init
+toggleCarField();
+renderStats();
+renderCosts();
+</script>
+</body>
+</html>

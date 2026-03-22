@@ -1,1 +1,408 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<script>
+// ===== Oceanus Data Layer =====
+// All data stored in localStorage — no database needed
 
+const DB = {
+  get: (key) => {
+    try { return JSON.parse(localStorage.getItem('oceanus_' + key)) || []; }
+    catch { return []; }
+  },
+  set: (key, val) => localStorage.setItem('oceanus_' + key, JSON.stringify(val)),
+
+  getCars: () => DB.get('cars'),
+  setCars: (d) => DB.set('cars', d),
+  addCar: (car) => { const a = DB.getCars(); car.id = Date.now(); a.push(car); DB.setCars(a); return car; },
+  deleteCar: (id) => DB.setCars(DB.getCars().filter(c => c.id !== id)),
+
+  getLocations: () => DB.get('locations'),
+  setLocations: (d) => DB.set('locations', d),
+  addLocation: (loc) => { const a = DB.getLocations(); loc.id = Date.now(); a.push(loc); DB.setLocations(a); return loc; },
+  deleteLocation: (id) => DB.setLocations(DB.getLocations().filter(l => l.id !== id)),
+
+  getCosts: () => DB.get('costs'),
+  setCosts: (d) => DB.set('costs', d),
+  addCost: (cost) => { const a = DB.getCosts(); cost.id = Date.now(); cost.date = cost.date || new Date().toISOString().split('T')[0]; a.push(cost); DB.setCosts(a); return cost; },
+  deleteCost: (id) => DB.setCosts(DB.getCosts().filter(c => c.id !== id)),
+
+  getOperations: () => DB.get('operations'),
+  setOperations: (d) => DB.set('operations', d),
+  addOperation: (op) => { const a = DB.getOperations(); op.id = Date.now(); op.date = op.date || new Date().toISOString().split('T')[0]; a.push(op); DB.setOperations(a); return op; },
+  deleteOperation: (id) => DB.setOperations(DB.getOperations().filter(o => o.id !== id)),
+
+  exportToJSON: () => {
+    const data = {
+      cars: DB.getCars(),
+      locations: DB.getLocations(),
+      costs: DB.getCosts(),
+      operations: DB.getOperations(),
+      exportedAt: new Date().toISOString()
+    };
+    const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'oceanus_backup_' + new Date().toISOString().split('T')[0] + '.json';
+    a.click();
+  },
+
+  importFromJSON: (file) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const data = JSON.parse(e.target.result);
+          if (data.cars) DB.setCars(data.cars);
+          if (data.locations) DB.setLocations(data.locations);
+          if (data.costs) DB.setCosts(data.costs);
+          if (data.operations) DB.setOperations(data.operations);
+          resolve();
+        } catch { reject(new Error('ملف غير صالح')); }
+      };
+      reader.readAsText(file);
+    });
+  },
+
+  seedDemo: () => {
+    if (DB.getCars().length > 0) return;
+    const cars = [
+      { id: 1, plate: 'أ ب ج 1234', type: 'باص', capacity: 50, driver: 'محمد أحمد', status: 'متاح' },
+      { id: 2, plate: 'د هـ و 5678', type: 'ميكروباص', capacity: 14, driver: 'خالد محمود', status: 'في رحلة' },
+      { id: 3, plate: 'ز ح ط 9012', type: 'باص', capacity: 45, driver: 'عمر حسن', status: 'صيانة' },
+      { id: 4, plate: 'ي ك ل 3456', type: 'سيارة خاصة', capacity: 7, driver: 'سامي علي', status: 'متاح' },
+    ];
+    const locations = [
+      { id: 1, name: 'أبو سمبل', type: 'داخلي', distance: 890, duration: '2 يوم' },
+      { id: 2, name: 'السد العالي', type: 'داخلي', distance: 880, duration: '1 يوم' },
+      { id: 3, name: 'فيله', type: 'داخلي', distance: 885, duration: '1 يوم' },
+      { id: 4, name: 'المسله', type: 'داخلي', distance: 870, duration: '1 يوم' },
+    ];
+    const operations = [
+      { id: 1, date: '2025-03-01', carId: 1, locationId: 1, supplier: 'أبو سمبل', revenue: 5000, notes: 'رحلة ناجحة' },
+      { id: 2, date: '2025-03-03', carId: 2, locationId: 2, supplier: 'السد', revenue: 3500, notes: '' },
+      { id: 3, date: '2025-03-05', carId: 1, locationId: 3, supplier: 'فيله', revenue: 4200, notes: 'مجموعة كبيرة' },
+      { id: 4, date: '2025-03-10', carId: 4, locationId: 4, supplier: 'المسله', revenue: 2800, notes: '' },
+    ];
+    const costs = [
+      { id: 1, date: '2025-03-01', type: 'ثابت', description: 'إيجار مكتب', amount: 3000, carId: null },
+      { id: 2, date: '2025-03-01', type: 'متغير', description: 'بنزين رحلة أبو سمبل', amount: 800, carId: 1 },
+      { id: 3, date: '2025-03-03', type: 'متغير', description: 'بنزين رحلة السد', amount: 450, carId: 2 },
+      { id: 4, date: '2025-03-05', type: 'أخري', description: 'مطبوعات وإعلانات', amount: 600, carId: null },
+      { id: 5, date: '2025-03-05', type: 'متغير', description: 'بنزين رحلة فيله', amount: 700, carId: 1 },
+      { id: 6, date: '2025-03-10', type: 'متغير', description: 'بنزين رحلة المسله', amount: 350, carId: 4 },
+    ];
+    DB.setCars(cars);
+    DB.setLocations(locations);
+    DB.setOperations(operations);
+    DB.setCosts(costs);
+  }
+};
+
+// Seed demo data on first load
+DB.seedDemo();
+
+</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Oceanus Tours & Travel — الرئيسية</title>
+<link rel="stylesheet" href="style.css">
+<style>
+.welcome-banner {
+  background: linear-gradient(135deg, var(--ocean-deep) 0%, var(--ocean-mid) 60%, #2a6090 100%);
+  border-radius: var(--radius-lg);
+  padding: 2.5rem;
+  color: white;
+  margin-bottom: 2rem;
+  position: relative;
+  overflow: hidden;
+}
+.welcome-banner::before {
+  content: 'Oceanus';
+  position: absolute;
+  left: -20px; top: -20px;
+  font-family: 'Pacifico', cursive;
+  font-size: 8rem;
+  color: rgba(255,255,255,0.04);
+  pointer-events: none;
+  white-space: nowrap;
+}
+.welcome-banner::after {
+  content: '';
+  position: absolute;
+  bottom: 0; right: 0;
+  width: 300px; height: 120px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 120'%3E%3Cpath fill='rgba(255,255,255,0.05)' d='M0,60 C75,20 150,100 225,60 C262,40 285,50 300,60 L300,120 L0,120Z'/%3E%3C/svg%3E") no-repeat bottom;
+  background-size: cover;
+}
+.welcome-date { font-size: 0.85rem; opacity: 0.7; margin-bottom: 0.5rem; }
+.welcome-title { font-size: 2rem; font-weight: 800; margin-bottom: 0.5rem; }
+.welcome-sub { opacity: 0.8; font-size: 1rem; }
+
+.quick-nav {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1.2rem;
+  margin-bottom: 2rem;
+}
+
+.nav-card {
+  background: white;
+  border-radius: var(--radius-lg);
+  padding: 2rem 1.5rem;
+  text-align: center;
+  text-decoration: none;
+  box-shadow: var(--shadow-sm);
+  transition: all 0.25s;
+  border-bottom: 4px solid transparent;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.nav-card:hover {
+  transform: translateY(-6px);
+  box-shadow: var(--shadow-lg);
+}
+
+.nav-card.c1 { border-bottom-color: var(--ocean-light); }
+.nav-card.c2 { border-bottom-color: var(--coral); }
+.nav-card.c3 { border-bottom-color: var(--success); }
+.nav-card.c4 { border-bottom-color: var(--warning); }
+
+.nav-card .icon {
+  width: 64px; height: 64px;
+  border-radius: var(--radius);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 2rem;
+}
+
+.c1 .icon { background: var(--ocean-foam); }
+.c2 .icon { background: #fff0ea; }
+.c3 .icon { background: #eafaf1; }
+.c4 .icon { background: #fef9e7; }
+
+.nav-card span {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--ocean-deep);
+}
+
+.nav-card small { font-size: 0.8rem; color: var(--text-light); }
+
+.recent-section { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+@media(max-width:768px){ .recent-section { grid-template-columns: 1fr; } }
+
+.activity-item {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--ocean-foam);
+}
+.activity-item:last-child { border-bottom: none; }
+
+.activity-dot {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.activity-item .info { flex: 1; min-width: 0; }
+.activity-item .info p { font-size: 0.88rem; font-weight: 600; color: var(--text-dark); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.activity-item .info small { font-size: 0.78rem; color: var(--text-light); }
+.activity-item .amount { font-weight: 700; font-size: 0.9rem; white-space: nowrap; }
+
+.toolbar { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+</style>
+</head>
+<body>
+
+<header class="header">
+  <div class="logo">
+    <span class="logo-main">Oceanus</span>
+    <span class="logo-sub">Tours & Travel</span>
+  </div>
+  <div class="header-actions toolbar">
+    <button class="btn btn-ghost btn-sm" onclick="DB.exportToJSON()">💾 تصدير بيانات</button>
+    <label class="btn btn-ghost btn-sm" style="cursor:pointer">
+      📂 استيراد
+      <input type="file" accept=".json" style="display:none" onchange="importData(this)">
+    </label>
+  </div>
+</header>
+
+<nav class="main-nav">
+  <a href="index.html" class="active"><span class="nav-icon">🏠</span> الرئيسية</a>
+  <a href="cars.html"><span class="nav-icon">🚌</span> العربيات</a>
+  <a href="location.html"><span class="nav-icon">📍</span> التشغيلات</a>
+  <a href="cost.html"><span class="nav-icon">💸</span> المصاريف</a>
+  <a href="report.html"><span class="nav-icon">📊</span> التقارير</a>
+</nav>
+
+<main class="container">
+
+  <div class="welcome-banner fade-in">
+    <div class="welcome-date" id="todayDate"></div>
+    <div class="welcome-title">أهلاً بك في نظام Oceanus 👋</div>
+    <div class="welcome-sub">إدارة رحلاتك ومصاريفك وعرباتك من مكان واحد</div>
+  </div>
+
+  <div class="stats-grid fade-in" id="statsGrid"></div>
+
+  <div class="quick-nav fade-in">
+    <a href="cars.html" class="nav-card c1">
+      <div class="icon">🚌</div>
+      <span>العربيات</span>
+      <small>إدارة الأسطول</small>
+    </a>
+    <a href="location.html" class="nav-card c2">
+      <div class="icon">📍</div>
+      <span>التشغيلات</span>
+      <small>تسجيل الرحلات والإيرادات</small>
+    </a>
+    <a href="cost.html" class="nav-card c3">
+      <div class="icon">💸</div>
+      <span>المصاريف</span>
+      <small>ثابتة ومتغيرة وأخرى</small>
+    </a>
+    <a href="report.html" class="nav-card c4">
+      <div class="icon">📊</div>
+      <span>التقارير</span>
+      <small>الأرباح والملخصات</small>
+    </a>
+  </div>
+
+  <div class="recent-section fade-in">
+    <div class="card">
+      <div class="card-header">
+        🚀 آخر التشغيلات
+        <a href="location.html" class="btn btn-ghost btn-sm" style="color:white;border-color:rgba(255,255,255,0.3)">عرض الكل</a>
+      </div>
+      <div class="card-body" id="recentOps"></div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        💸 آخر المصاريف
+        <a href="cost.html" class="btn btn-ghost btn-sm" style="color:white;border-color:rgba(255,255,255,0.3)">عرض الكل</a>
+      </div>
+      <div class="card-body" id="recentCosts"></div>
+    </div>
+  </div>
+
+</main>
+
+<div class="toast" id="toast"></div>
+
+
+<script>
+// Date
+const d = new Date();
+document.getElementById('todayDate').textContent = d.toLocaleDateString('ar-EG', {weekday:'long', year:'numeric', month:'long', day:'numeric'});
+
+function fmt(n) { return Number(n||0).toLocaleString('ar-EG') + ' ج.م'; }
+
+function renderStats() {
+  const ops = DB.getOperations();
+  const costs = DB.getCosts();
+  const cars = DB.getCars();
+
+  const totalRevenue = ops.reduce((s, o) => s + Number(o.revenue||0), 0);
+  const totalCosts   = costs.reduce((s, c) => s + Number(c.amount||0), 0);
+  const profit       = totalRevenue - totalCosts;
+  const availCars    = cars.filter(c => c.status === 'متاح').length;
+
+  document.getElementById('statsGrid').innerHTML = `
+    <div class="stat-card">
+      <div class="stat-icon">🚀</div>
+      <div class="stat-info">
+        <div class="stat-value">${ops.length}</div>
+        <div class="stat-label">إجمالي التشغيلات</div>
+      </div>
+    </div>
+    <div class="stat-card coral">
+      <div class="stat-icon">💰</div>
+      <div class="stat-info">
+        <div class="stat-value" style="font-size:1.15rem">${fmt(totalRevenue)}</div>
+        <div class="stat-label">إجمالي الإيرادات</div>
+      </div>
+    </div>
+    <div class="stat-card warning">
+      <div class="stat-icon">💸</div>
+      <div class="stat-info">
+        <div class="stat-value" style="font-size:1.15rem">${fmt(totalCosts)}</div>
+        <div class="stat-label">إجمالي المصاريف</div>
+      </div>
+    </div>
+    <div class="stat-card success">
+      <div class="stat-icon">${profit >= 0 ? '📈' : '📉'}</div>
+      <div class="stat-info">
+        <div class="stat-value" style="font-size:1.15rem;color:${profit>=0?'var(--success)':'var(--danger)'}">${fmt(profit)}</div>
+        <div class="stat-label">صافي الربح</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">🚌</div>
+      <div class="stat-info">
+        <div class="stat-value">${cars.length}</div>
+        <div class="stat-label">عدد العربيات (${availCars} متاح)</div>
+      </div>
+    </div>
+  `;
+}
+
+function renderRecent() {
+  const ops = [...DB.getOperations()].sort((a,b)=> b.date.localeCompare(a.date)).slice(0,5);
+  const costs = [...DB.getCosts()].sort((a,b)=> b.date.localeCompare(a.date)).slice(0,5);
+  const cars = DB.getCars();
+
+  const colorMap = {'ثابت':'#3498db','متغير':'var(--coral)','أخري':'var(--warning)'};
+
+  document.getElementById('recentOps').innerHTML = ops.length ? ops.map(o => {
+    const car = cars.find(c => c.id == o.carId);
+    return `<div class="activity-item">
+      <div class="activity-dot" style="background:var(--success)"></div>
+      <div class="info">
+        <p>${o.supplier || 'رحلة'} ${car ? '— ' + car.plate : ''}</p>
+        <small>${o.date}</small>
+      </div>
+      <div class="amount text-success">+${fmt(o.revenue)}</div>
+    </div>`;
+  }).join('') : '<div class="empty-state"><div class="empty-icon">🚀</div><p>لا توجد تشغيلات بعد</p></div>';
+
+  document.getElementById('recentCosts').innerHTML = costs.length ? costs.map(c =>
+    `<div class="activity-item">
+      <div class="activity-dot" style="background:${colorMap[c.type]||'#aaa'}"></div>
+      <div class="info">
+        <p>${c.description}</p>
+        <small>${c.date} — ${c.type}</small>
+      </div>
+      <div class="amount text-danger">-${fmt(c.amount)}</div>
+    </div>`
+  ).join('') : '<div class="empty-state"><div class="empty-icon">💸</div><p>لا توجد مصاريف بعد</p></div>';
+}
+
+function showToast(msg, type='') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show ' + type;
+  setTimeout(() => t.className = 'toast', 2800);
+}
+
+async function importData(input) {
+  if (!input.files[0]) return;
+  try {
+    await DB.importFromJSON(input.files[0]);
+    showToast('✅ تم استيراد البيانات بنجاح', 'success');
+    renderStats(); renderRecent();
+  } catch(e) {
+    showToast('❌ ' + e.message, 'error');
+  }
+}
+
+renderStats();
+renderRecent();
+</script>
+</body>
+</html>
