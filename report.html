@@ -1,168 +1,34 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-<script>
-// ===== Oceanus Data Layer =====
-// All data stored in localStorage — no database needed
-
-const DB = {
-  get: (key) => {
-    try { return JSON.parse(localStorage.getItem('oceanus_' + key)) || []; }
-    catch { return []; }
-  },
-  set: (key, val) => localStorage.setItem('oceanus_' + key, JSON.stringify(val)),
-
-  getCars: () => DB.get('cars'),
-  setCars: (d) => DB.set('cars', d),
-  addCar: (car) => { const a = DB.getCars(); car.id = Date.now(); a.push(car); DB.setCars(a); return car; },
-  deleteCar: (id) => DB.setCars(DB.getCars().filter(c => c.id !== id)),
-
-  getLocations: () => DB.get('locations'),
-  setLocations: (d) => DB.set('locations', d),
-  addLocation: (loc) => { const a = DB.getLocations(); loc.id = Date.now(); a.push(loc); DB.setLocations(a); return loc; },
-  deleteLocation: (id) => DB.setLocations(DB.getLocations().filter(l => l.id !== id)),
-
-  getCosts: () => DB.get('costs'),
-  setCosts: (d) => DB.set('costs', d),
-  addCost: (cost) => { const a = DB.getCosts(); cost.id = Date.now(); cost.date = cost.date || new Date().toISOString().split('T')[0]; a.push(cost); DB.setCosts(a); return cost; },
-  deleteCost: (id) => DB.setCosts(DB.getCosts().filter(c => c.id !== id)),
-
-  getOperations: () => DB.get('operations'),
-  setOperations: (d) => DB.set('operations', d),
-  addOperation: (op) => { const a = DB.getOperations(); op.id = Date.now(); op.date = op.date || new Date().toISOString().split('T')[0]; a.push(op); DB.setOperations(a); return op; },
-  deleteOperation: (id) => DB.setOperations(DB.getOperations().filter(o => o.id !== id)),
-
-  exportToJSON: () => {
-    const data = {
-      cars: DB.getCars(),
-      locations: DB.getLocations(),
-      costs: DB.getCosts(),
-      operations: DB.getOperations(),
-      exportedAt: new Date().toISOString()
-    };
-    const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = 'oceanus_backup_' + new Date().toISOString().split('T')[0] + '.json';
-    a.click();
-  },
-
-  importFromJSON: (file) => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        try {
-          const data = JSON.parse(e.target.result);
-          if (data.cars) DB.setCars(data.cars);
-          if (data.locations) DB.setLocations(data.locations);
-          if (data.costs) DB.setCosts(data.costs);
-          if (data.operations) DB.setOperations(data.operations);
-          resolve();
-        } catch { reject(new Error('ملف غير صالح')); }
-      };
-      reader.readAsText(file);
-    });
-  },
-
-  seedDemo: () => {
-    if (DB.getCars().length > 0) return;
-    const cars = [
-      { id: 1, plate: 'أ ب ج 1234', type: 'باص', capacity: 50, driver: 'محمد أحمد', status: 'متاح' },
-      { id: 2, plate: 'د هـ و 5678', type: 'ميكروباص', capacity: 14, driver: 'خالد محمود', status: 'في رحلة' },
-      { id: 3, plate: 'ز ح ط 9012', type: 'باص', capacity: 45, driver: 'عمر حسن', status: 'صيانة' },
-      { id: 4, plate: 'ي ك ل 3456', type: 'سيارة خاصة', capacity: 7, driver: 'سامي علي', status: 'متاح' },
-    ];
-    const locations = [
-      { id: 1, name: 'أبو سمبل', type: 'داخلي', distance: 890, duration: '2 يوم' },
-      { id: 2, name: 'السد العالي', type: 'داخلي', distance: 880, duration: '1 يوم' },
-      { id: 3, name: 'فيله', type: 'داخلي', distance: 885, duration: '1 يوم' },
-      { id: 4, name: 'المسله', type: 'داخلي', distance: 870, duration: '1 يوم' },
-    ];
-    const operations = [
-      { id: 1, date: '2025-03-01', carId: 1, locationId: 1, supplier: 'أبو سمبل', revenue: 5000, notes: 'رحلة ناجحة' },
-      { id: 2, date: '2025-03-03', carId: 2, locationId: 2, supplier: 'السد', revenue: 3500, notes: '' },
-      { id: 3, date: '2025-03-05', carId: 1, locationId: 3, supplier: 'فيله', revenue: 4200, notes: 'مجموعة كبيرة' },
-      { id: 4, date: '2025-03-10', carId: 4, locationId: 4, supplier: 'المسله', revenue: 2800, notes: '' },
-    ];
-    const costs = [
-      { id: 1, date: '2025-03-01', type: 'ثابت', description: 'إيجار مكتب', amount: 3000, carId: null },
-      { id: 2, date: '2025-03-01', type: 'متغير', description: 'بنزين رحلة أبو سمبل', amount: 800, carId: 1 },
-      { id: 3, date: '2025-03-03', type: 'متغير', description: 'بنزين رحلة السد', amount: 450, carId: 2 },
-      { id: 4, date: '2025-03-05', type: 'أخري', description: 'مطبوعات وإعلانات', amount: 600, carId: null },
-      { id: 5, date: '2025-03-05', type: 'متغير', description: 'بنزين رحلة فيله', amount: 700, carId: 1 },
-      { id: 6, date: '2025-03-10', type: 'متغير', description: 'بنزين رحلة المسله', amount: 350, carId: 4 },
-    ];
-    DB.setCars(cars);
-    DB.setLocations(locations);
-    DB.setOperations(operations);
-    DB.setCosts(costs);
-  }
-};
-
-// Seed demo data on first load
-DB.seedDemo();
-
-</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Oceanus — التقارير</title>
 <link rel="stylesheet" href="style.css">
+<script src="shared.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 <style>
-.report-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
-@media(max-width:900px){ .report-grid { grid-template-columns: 1fr; } }
-
-.profit-card {
-  background: linear-gradient(135deg, var(--ocean-deep), #2a6090);
-  border-radius: var(--radius-lg);
-  padding: 2rem;
-  color: white;
-  text-align: center;
-  margin-bottom: 2rem;
-}
-.profit-value { font-size: 3rem; font-weight: 800; }
-.profit-label { opacity: 0.8; font-size: 1rem; margin-top: 0.25rem; }
-
-.filter-period { display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; margin-bottom: 1.5rem; }
-.period-btn {
-  padding: 0.45rem 1rem;
-  border: 2px solid var(--ocean-light);
-  border-radius: 20px;
-  background: white;
-  color: var(--ocean-mid);
-  cursor: pointer;
-  font-family: 'Tajawal', sans-serif;
-  font-size: 0.85rem;
-  font-weight: 600;
-  transition: all 0.2s;
-}
-.period-btn.active { background: var(--ocean-mid); color: white; border-color: var(--ocean-mid); }
-
-.chart-container { position: relative; height: 260px; }
-
-.summary-table td:first-child { font-weight: 600; }
-.summary-table td:last-child { text-align: left; font-weight: 700; }
-
-@media print {
-  .filter-period, .print-btn { display: none !important; }
-  .report-grid { grid-template-columns: 1fr; }
-  .profit-card { background: #1a3a5c !important; -webkit-print-color-adjust: exact; }
-}
+.report-grid{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem}
+@media(max-width:900px){.report-grid{grid-template-columns:1fr}}
+.profit-card{background:linear-gradient(135deg,var(--ocean-deep),#2a6090);border-radius:var(--radius-lg);padding:2rem;color:white;text-align:center;margin-bottom:2rem}
+.profit-value{font-size:3rem;font-weight:800}
+.profit-label{opacity:.8;font-size:1rem;margin-top:.25rem}
+.filter-period{display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;margin-bottom:1.5rem}
+.period-btn{padding:.45rem 1rem;border:2px solid var(--ocean-light);border-radius:20px;background:white;color:var(--ocean-mid);cursor:pointer;font-family:'Tajawal',sans-serif;font-size:.85rem;font-weight:600;transition:all .2s}
+.period-btn.active{background:var(--ocean-mid);color:white;border-color:var(--ocean-mid)}
+.chart-container{position:relative;height:260px}
+@media print{.filter-period,.print-btn{display:none!important}.report-grid{grid-template-columns:1fr}.profit-card{background:#1a3a5c!important;-webkit-print-color-adjust:exact}}
 </style>
 </head>
 <body>
-
 <header class="header">
-  <div class="logo">
-    <span class="logo-main">Oceanus</span>
-    <span class="logo-sub">Tours & Travel</span>
-  </div>
+  <div class="logo"><span class="logo-main">Oceanus</span><span class="logo-sub">Tours & Travel</span></div>
   <div class="header-actions">
     <button class="btn btn-ghost btn-sm print-btn" onclick="window.print()">🖨️ طباعة</button>
-    <button class="btn btn-ghost btn-sm print-btn" onclick="exportCSV()">📥 تصدير CSV</button>
+    <button class="btn btn-ghost btn-sm print-btn" onclick="exportCSV()">📥 CSV</button>
+    <button class="btn btn-ghost btn-sm print-btn" onclick="hardRefresh()">🔄 تحديث</button>
   </div>
 </header>
-
 <nav class="main-nav">
   <a href="index.html"><span class="nav-icon">🏠</span> الرئيسية</a>
   <a href="cars.html"><span class="nav-icon">🚌</span> العربيات</a>
@@ -170,13 +36,10 @@ DB.seedDemo();
   <a href="cost.html"><span class="nav-icon">💸</span> المصاريف</a>
   <a href="report.html" class="active"><span class="nav-icon">📊</span> التقارير</a>
 </nav>
-
 <main class="container">
-
   <div class="flex-between mb-2 fade-in" style="flex-wrap:wrap;gap:1rem">
     <h1 class="page-title" style="margin-bottom:0">📊 التقارير والأرباح</h1>
   </div>
-
   <div class="filter-period fade-in">
     <span style="font-weight:700;color:var(--text-mid)">الفترة:</span>
     <button class="period-btn" onclick="setPeriod('week',this)">هذا الأسبوع</button>
@@ -184,285 +47,146 @@ DB.seedDemo();
     <button class="period-btn" onclick="setPeriod('quarter',this)">ربع السنة</button>
     <button class="period-btn" onclick="setPeriod('year',this)">هذه السنة</button>
     <button class="period-btn" onclick="setPeriod('all',this)">الكل</button>
-    <div style="display:flex;gap:0.5rem;align-items:center;margin-right:auto">
-      <input type="date" class="form-control" id="customFrom" style="width:auto" placeholder="من">
-      <input type="date" class="form-control" id="customTo" style="width:auto" placeholder="إلى">
+    <div style="display:flex;gap:.5rem;align-items:center;margin-right:auto">
+      <input type="date" class="form-control" id="customFrom" style="width:auto">
+      <input type="date" class="form-control" id="customTo" style="width:auto">
       <button class="btn btn-ghost btn-sm" onclick="applyCustom()">تطبيق</button>
     </div>
   </div>
-
-  <!-- Big profit card -->
-  <div class="profit-card fade-in" id="profitCard"></div>
-
-  <!-- Stats row -->
+  <div class="profit-card fade-in" id="profitCard"><div class="profit-value">⏳</div><div class="profit-label">جاري التحميل...</div></div>
   <div class="stats-grid fade-in" id="reportStats"></div>
-
-  <!-- Charts + Table -->
   <div class="report-grid fade-in">
-    <div class="card">
-      <div class="card-header">📈 الإيرادات مقابل المصاريف</div>
-      <div class="card-body">
-        <div class="chart-container">
-          <canvas id="revenueChart"></canvas>
-        </div>
-      </div>
-    </div>
-    <div class="card">
-      <div class="card-header">🥧 توزيع المصاريف</div>
-      <div class="card-body">
-        <div class="chart-container">
-          <canvas id="costChart"></canvas>
-        </div>
-      </div>
-    </div>
+    <div class="card"><div class="card-header">📈 الإيرادات مقابل المصاريف</div><div class="card-body"><div class="chart-container"><canvas id="revenueChart"></canvas></div></div></div>
+    <div class="card"><div class="card-header">🥧 توزيع المصاريف</div><div class="card-body"><div class="chart-container"><canvas id="costChart"></canvas></div></div></div>
   </div>
-
-  <!-- Per car report -->
   <div class="card mt-3 fade-in">
     <div class="card-header">🚌 ملخص العربيات</div>
-    <div class="card-body" style="padding:0">
-      <div class="table-wrap">
-        <table class="summary-table">
-          <thead><tr><th>العربية</th><th>عدد الرحلات</th><th>الإيرادات</th><th>المصاريف</th><th>الربح</th></tr></thead>
-          <tbody id="carSummary"></tbody>
-        </table>
-      </div>
-    </div>
+    <div class="card-body" style="padding:0"><div class="table-wrap"><table><thead><tr><th>العربية</th><th>الرحلات</th><th>الإيرادات</th><th>المصاريف</th><th>الربح</th></tr></thead><tbody id="carSummary"></tbody></table></div></div>
   </div>
-
-  <!-- Detailed ops table -->
   <div class="card mt-3 fade-in">
-    <div class="card-header">📋 تفصيل التشغيلات اليومية</div>
-    <div class="card-body" style="padding:0">
-      <div class="table-wrap">
-        <table>
-          <thead><tr><th>#</th><th>التاريخ</th><th>العربية</th><th>الوجهة</th><th>الإيراد</th><th>المصاريف</th><th>الربح</th></tr></thead>
-          <tbody id="detailBody"></tbody>
-          <tfoot id="detailFoot"></tfoot>
-        </table>
-      </div>
-    </div>
+    <div class="card-header">📋 تفصيل التشغيلات</div>
+    <div class="card-body" style="padding:0"><div class="table-wrap"><table><thead><tr><th>#</th><th>التاريخ</th><th>العربية</th><th>الوجهة</th><th>الإيراد</th><th>المصاريف</th><th>الربح</th></tr></thead><tbody id="detailBody"></tbody><tfoot id="detailFoot"></tfoot></table></div></div>
   </div>
-
 </main>
-
-
 <script>
-let period = 'month';
-let customFrom = null, customTo = null;
-let revenueChartInst = null, costChartInst = null;
+let period='month',customFrom=null,customTo=null;
+let revChartInst=null,costChartInst=null;
+let _ops=[],_costs=[],_cars=[];
+function fmt(n){return Number(n||0).toLocaleString('ar-EG')+' ج.م'}
+function showToast(msg,type=''){const t=document.getElementById('toast')||Object.assign(document.createElement('div'),{id:'toast',className:'toast'});if(!document.getElementById('toast'))document.body.appendChild(t);t.textContent=msg;t.className='toast show '+type;setTimeout(()=>t.className='toast',2500)}
 
-function fmt(n) { return Number(n||0).toLocaleString('ar-EG') + ' ج.م'; }
-
-function getDateRange() {
-  const now = new Date();
-  if (customFrom && customTo) return { from: customFrom, to: customTo };
-  let from, to = now.toISOString().split('T')[0];
-  if (period === 'week') {
-    const d = new Date(now); d.setDate(d.getDate() - 7);
-    from = d.toISOString().split('T')[0];
-  } else if (period === 'month') {
-    from = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-01';
-  } else if (period === 'quarter') {
-    const d = new Date(now); d.setMonth(d.getMonth()-3);
-    from = d.toISOString().split('T')[0];
-  } else if (period === 'year') {
-    from = now.getFullYear() + '-01-01';
-  } else {
-    return { from: '2000-01-01', to: '2099-12-31' };
-  }
-  return { from, to };
+function getDateRange(){
+  const now=new Date();
+  if(customFrom&&customTo)return{from:customFrom,to:customTo};
+  let from,to=now.toISOString().split('T')[0];
+  if(period==='week'){const d=new Date(now);d.setDate(d.getDate()-7);from=d.toISOString().split('T')[0]}
+  else if(period==='month'){from=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-01'}
+  else if(period==='quarter'){const d=new Date(now);d.setMonth(d.getMonth()-3);from=d.toISOString().split('T')[0]}
+  else if(period==='year'){from=now.getFullYear()+'-01-01'}
+  else return{from:'2000-01-01',to:'2099-12-31'};
+  return{from,to};
 }
 
-function filterByDate(items) {
-  const { from, to } = getDateRange();
-  return items.filter(i => i.date >= from && i.date <= to);
-}
+function filterByDate(items){const{from,to}=getDateRange();return items.filter(i=>i.date>=from&&i.date<=to)}
 
-function setPeriod(p, el) {
-  period = p;
-  customFrom = null; customTo = null;
-  document.querySelectorAll('.period-btn').forEach(b=>b.classList.remove('active'));
-  el.classList.add('active');
-  renderAll();
-}
+function setPeriod(p,el){period=p;customFrom=null;customTo=null;document.querySelectorAll('.period-btn').forEach(b=>b.classList.remove('active'));el.classList.add('active');renderAll()}
+function applyCustom(){customFrom=document.getElementById('customFrom').value;customTo=document.getElementById('customTo').value;if(customFrom&&customTo){document.querySelectorAll('.period-btn').forEach(b=>b.classList.remove('active'));renderAll()}}
 
-function applyCustom() {
-  customFrom = document.getElementById('customFrom').value;
-  customTo   = document.getElementById('customTo').value;
-  if (!customFrom || !customTo) return;
-  document.querySelectorAll('.period-btn').forEach(b=>b.classList.remove('active'));
-  renderAll();
-}
-
-function renderAll() {
-  const ops   = filterByDate(DB.getOperations());
-  const costs = filterByDate(DB.getCosts());
-  const cars  = DB.getCars();
-
-  const totalRev  = ops.reduce((s,o)=>s+Number(o.revenue||0),0);
-  const totalCost = costs.reduce((s,c)=>s+Number(c.amount||0),0);
-  const profit    = totalRev - totalCost;
-  const margin    = totalRev ? ((profit/totalRev)*100).toFixed(1) : 0;
-
-  // Profit card
-  document.getElementById('profitCard').innerHTML = `
-    <div style="opacity:0.7;font-size:0.9rem;margin-bottom:0.5rem">صافي الربح للفترة المختارة</div>
+function renderAll(){
+  const ops=filterByDate(_ops);
+  const costs=filterByDate(_costs);
+  const rev=ops.reduce((s,o)=>s+Number(o.revenue||0),0);
+  const cost=costs.reduce((s,c)=>s+Number(c.amount||0),0);
+  const profit=rev-cost;
+  const margin=rev?((profit/rev)*100).toFixed(1):0;
+  document.getElementById('profitCard').innerHTML=`
+    <div style="opacity:.7;font-size:.9rem;margin-bottom:.5rem">صافي الربح للفترة المختارة</div>
     <div class="profit-value" style="color:${profit>=0?'#2ecc71':'#e74c3c'}">${fmt(profit)}</div>
     <div class="profit-label">هامش الربح: ${margin}%</div>
-    <div style="display:flex;justify-content:center;gap:3rem;margin-top:1rem;font-size:0.9rem">
-      <div><div style="font-size:1.3rem;font-weight:700;color:#a8d8f0">${fmt(totalRev)}</div><div style="opacity:0.7">إجمالي الإيرادات</div></div>
-      <div><div style="font-size:1.3rem;font-weight:700;color:#f0a0a0">${fmt(totalCost)}</div><div style="opacity:0.7">إجمالي المصاريف</div></div>
-    </div>
-  `;
-
-  // Stats
-  document.getElementById('reportStats').innerHTML = `
+    <div style="display:flex;justify-content:center;gap:3rem;margin-top:1rem;font-size:.9rem">
+      <div><div style="font-size:1.3rem;font-weight:700;color:#a8d8f0">${fmt(rev)}</div><div style="opacity:.7">الإيرادات</div></div>
+      <div><div style="font-size:1.3rem;font-weight:700;color:#f0a0a0">${fmt(cost)}</div><div style="opacity:.7">المصاريف</div></div>
+    </div>`;
+  document.getElementById('reportStats').innerHTML=`
     <div class="stat-card"><div class="stat-icon">🚀</div><div class="stat-info"><div class="stat-value">${ops.length}</div><div class="stat-label">عدد التشغيلات</div></div></div>
-    <div class="stat-card coral"><div class="stat-icon">📊</div><div class="stat-info"><div class="stat-value">${ops.length ? fmt(totalRev/ops.length) : '—'}</div><div class="stat-label">متوسط إيراد الرحلة</div></div></div>
-    <div class="stat-card warning"><div class="stat-icon">📌</div><div class="stat-info"><div class="stat-value">${fmt(costs.filter(c=>c.type==='ثابت').reduce((s,c)=>s+Number(c.amount||0),0))}</div><div class="stat-label">المصاريف الثابتة</div></div></div>
-    <div class="stat-card success"><div class="stat-icon">🔄</div><div class="stat-info"><div class="stat-value">${fmt(costs.filter(c=>c.type==='متغير').reduce((s,c)=>s+Number(c.amount||0),0))}</div><div class="stat-label">المصاريف المتغيرة</div></div></div>
-  `;
-
-  renderCharts(ops, costs);
-  renderCarSummary(ops, costs, cars);
-  renderDetail(ops, costs, cars);
+    <div class="stat-card coral"><div class="stat-icon">📊</div><div class="stat-info"><div class="stat-value">${ops.length?fmt(rev/ops.length):'—'}</div><div class="stat-label">متوسط إيراد الرحلة</div></div></div>
+    <div class="stat-card warning"><div class="stat-icon">📌</div><div class="stat-info"><div class="stat-value">${fmt(costs.filter(c=>c.type==='ثابت').reduce((s,c)=>s+Number(c.amount||0),0))}</div><div class="stat-label">مصاريف ثابتة</div></div></div>
+    <div class="stat-card success"><div class="stat-icon">🔄</div><div class="stat-info"><div class="stat-value">${fmt(costs.filter(c=>c.type==='متغير').reduce((s,c)=>s+Number(c.amount||0),0))}</div><div class="stat-label">مصاريف متغيرة</div></div></div>`;
+  renderCharts(ops,costs);
+  renderCarSummary(ops,costs);
+  renderDetail(ops,costs);
 }
 
-function renderCharts(ops, costs) {
-  // Group by month
-  const monthMap = {};
-  ops.forEach(o => {
-    const m = (o.date||'').slice(0,7);
-    if (!monthMap[m]) monthMap[m] = { rev: 0, cost: 0 };
-    monthMap[m].rev += Number(o.revenue||0);
-  });
-  costs.forEach(c => {
-    const m = (c.date||'').slice(0,7);
-    if (!monthMap[m]) monthMap[m] = { rev: 0, cost: 0 };
-    monthMap[m].cost += Number(c.amount||0);
-  });
-  const months = Object.keys(monthMap).sort();
-  const revs   = months.map(m=>monthMap[m].rev);
-  const csts   = months.map(m=>monthMap[m].cost);
-
-  if (revenueChartInst) revenueChartInst.destroy();
-  revenueChartInst = new Chart(document.getElementById('revenueChart'), {
-    type: 'bar',
-    data: {
-      labels: months.map(m => {
-        const [y,mo] = m.split('-');
-        return new Date(y, mo-1).toLocaleDateString('ar-EG', {month:'short',year:'numeric'});
-      }),
-      datasets: [
-        { label: 'الإيرادات', data: revs, backgroundColor: 'rgba(30,73,118,0.75)', borderRadius: 6 },
-        { label: 'المصاريف', data: csts, backgroundColor: 'rgba(224,92,26,0.65)', borderRadius: 6 },
-      ]
-    },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { labels: { font: { family: 'Tajawal' } } } },
-      scales: {
-        y: { ticks: { callback: v => v.toLocaleString('ar-EG'), font: { family: 'Tajawal', size: 11 } } },
-        x: { ticks: { font: { family: 'Tajawal', size: 11 } } }
-      }
-    }
-  });
-
-  // Doughnut
-  const fixed    = costs.filter(c=>c.type==='ثابت').reduce((s,c)=>s+Number(c.amount||0),0);
-  const variable = costs.filter(c=>c.type==='متغير').reduce((s,c)=>s+Number(c.amount||0),0);
-  const other    = costs.filter(c=>c.type==='أخري').reduce((s,c)=>s+Number(c.amount||0),0);
-
-  if (costChartInst) costChartInst.destroy();
-  costChartInst = new Chart(document.getElementById('costChart'), {
-    type: 'doughnut',
-    data: {
-      labels: ['ثابتة', 'متغيرة', 'أخرى'],
-      datasets: [{ data: [fixed, variable, other], backgroundColor: ['#1e4976','#e05c1a','#f39c12'], borderWidth: 0 }]
-    },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      cutout: '65%',
-      plugins: {
-        legend: { position: 'bottom', labels: { font: { family: 'Tajawal', size: 13 }, padding: 16 } },
-        tooltip: { callbacks: { label: (ctx) => ' ' + ctx.label + ': ' + Number(ctx.raw).toLocaleString('ar-EG') + ' ج.م' } }
-      }
-    }
-  });
+function renderCharts(ops,costs){
+  const mm={};
+  ops.forEach(o=>{const m=(o.date||'').slice(0,7);if(!mm[m])mm[m]={rev:0,cost:0};mm[m].rev+=Number(o.revenue||0)});
+  costs.forEach(c=>{const m=(c.date||'').slice(0,7);if(!mm[m])mm[m]={rev:0,cost:0};mm[m].cost+=Number(c.amount||0)});
+  const months=Object.keys(mm).sort();
+  if(revChartInst)revChartInst.destroy();
+  revChartInst=new Chart(document.getElementById('revenueChart'),{type:'bar',data:{labels:months.map(m=>{const[y,mo]=m.split('-');return new Date(y,mo-1).toLocaleDateString('ar-EG',{month:'short',year:'numeric'})}),datasets:[{label:'الإيرادات',data:months.map(m=>mm[m].rev),backgroundColor:'rgba(30,73,118,0.75)',borderRadius:6},{label:'المصاريف',data:months.map(m=>mm[m].cost),backgroundColor:'rgba(224,92,26,0.65)',borderRadius:6}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{font:{family:'Tajawal'}}}},scales:{y:{ticks:{callback:v=>v.toLocaleString('ar-EG'),font:{family:'Tajawal',size:11}}},x:{ticks:{font:{family:'Tajawal',size:11}}}}}});
+  const fixed=costs.filter(c=>c.type==='ثابت').reduce((s,c)=>s+Number(c.amount||0),0);
+  const variable=costs.filter(c=>c.type==='متغير').reduce((s,c)=>s+Number(c.amount||0),0);
+  const other=costs.filter(c=>c.type==='أخري').reduce((s,c)=>s+Number(c.amount||0),0);
+  if(costChartInst)costChartInst.destroy();
+  costChartInst=new Chart(document.getElementById('costChart'),{type:'doughnut',data:{labels:['ثابتة','متغيرة','أخرى'],datasets:[{data:[fixed,variable,other],backgroundColor:['#1e4976','#e05c1a','#f39c12'],borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,cutout:'65%',plugins:{legend:{position:'bottom',labels:{font:{family:'Tajawal',size:13},padding:16}},tooltip:{callbacks:{label:(ctx)=>' '+ctx.label+': '+Number(ctx.raw).toLocaleString('ar-EG')+' ج.م'}}}}});
 }
 
-function renderCarSummary(ops, costs, cars) {
-  const tbody = document.getElementById('carSummary');
-  if (!cars.length) {
-    tbody.innerHTML = '<tr><td colspan="5" class="text-muted" style="text-align:center;padding:1rem">لا بيانات</td></tr>';
-    return;
-  }
-  tbody.innerHTML = cars.map(car => {
-    const carOps   = ops.filter(o=>o.carId==car.id);
-    const carCosts = costs.filter(c=>c.carId==car.id);
-    const rev  = carOps.reduce((s,o)=>s+Number(o.revenue||0),0);
-    const cost = carCosts.reduce((s,c)=>s+Number(c.amount||0),0);
-    const profit = rev - cost;
-    return `<tr>
-      <td>${car.plate} <span class="text-muted" style="font-size:0.8rem">${car.type}</span></td>
-      <td>${carOps.length}</td>
-      <td class="text-success">${fmt(rev)}</td>
-      <td class="text-danger">${fmt(cost)}</td>
-      <td class="${profit>=0?'text-success':'text-danger'} fw-bold">${fmt(profit)}</td>
-    </tr>`;
-  }).join('');
+function renderCarSummary(ops,costs){
+  document.getElementById('carSummary').innerHTML=_cars.length?_cars.map(car=>{
+    const carOps=ops.filter(o=>o.carId==car.id);
+    const carCosts=costs.filter(c=>c.carId==car.id);
+    const rev=carOps.reduce((s,o)=>s+Number(o.revenue||0),0);
+    const cost=carCosts.reduce((s,c)=>s+Number(c.amount||0),0);
+    const profit=rev-cost;
+    return `<tr><td>${car.plate} <span class="text-muted" style="font-size:.8rem">${car.type}</span></td><td>${carOps.length}</td><td class="text-success">${fmt(rev)}</td><td class="text-danger">${fmt(cost)}</td><td class="${profit>=0?'text-success':'text-danger'} fw-bold">${fmt(profit)}</td></tr>`;
+  }).join(''):'<tr><td colspan="5" class="text-muted" style="text-align:center;padding:1rem">لا بيانات</td></tr>';
 }
 
-function renderDetail(ops, costs, cars) {
-  const sortedOps = [...ops].sort((a,b)=>b.date?.localeCompare(a.date||''));
-
-  let totalRev=0, totalCost=0;
-  document.getElementById('detailBody').innerHTML = sortedOps.map((o,i) => {
-    const car = cars.find(c=>c.id==o.carId);
-    const opCosts = costs.filter(c=>c.carId==o.carId && c.date===o.date);
-    const costAmt = opCosts.reduce((s,c)=>s+Number(c.amount||0),0);
-    const profit  = Number(o.revenue||0) - costAmt;
-    totalRev  += Number(o.revenue||0);
-    totalCost += costAmt;
-    return `<tr>
-      <td class="text-muted">${i+1}</td>
-      <td>${o.date}</td>
-      <td>${car?.plate||'—'}</td>
-      <td>${o.supplier||'—'}</td>
-      <td class="text-success fw-bold">${fmt(o.revenue)}</td>
-      <td class="text-danger">${fmt(costAmt)}</td>
-      <td class="${profit>=0?'text-success':'text-danger'} fw-bold">${fmt(profit)}</td>
-    </tr>`;
-  }).join('') || '<tr><td colspan="7"><div class="empty-state"><div class="empty-icon">📊</div><p>لا توجد بيانات في هذه الفترة</p></div></td></tr>';
-
-  document.getElementById('detailFoot').innerHTML = `<tr>
-    <td colspan="4" class="fw-bold">الإجمالي</td>
-    <td class="text-success fw-bold">${fmt(totalRev)}</td>
-    <td class="text-danger fw-bold">${fmt(totalCost)}</td>
-    <td class="${(totalRev-totalCost)>=0?'text-success':'text-danger'} fw-bold">${fmt(totalRev-totalCost)}</td>
-  </tr>`;
+function renderDetail(ops,costs){
+  const sorted=[...ops].sort((a,b)=>b.date?.localeCompare(a.date||''));
+  let totalRev=0,totalCost=0;
+  document.getElementById('detailBody').innerHTML=sorted.map((o,i)=>{
+    const car=_cars.find(c=>c.id==o.carId);
+    const opCosts=costs.filter(c=>c.carId==o.carId&&c.date===o.date);
+    const costAmt=opCosts.reduce((s,c)=>s+Number(c.amount||0),0);
+    const profit=Number(o.revenue||0)-costAmt;
+    totalRev+=Number(o.revenue||0);totalCost+=costAmt;
+    return `<tr><td class="text-muted">${i+1}</td><td>${o.date}</td><td>${car?.plate||'—'}</td><td>${o.supplier||'—'}</td><td class="text-success fw-bold">${fmt(o.revenue)}</td><td class="text-danger">${fmt(costAmt)}</td><td class="${profit>=0?'text-success':'text-danger'} fw-bold">${fmt(profit)}</td></tr>`;
+  }).join('')||'<tr><td colspan="7"><div class="empty-state"><div class="empty-icon">📊</div><p>لا توجد بيانات</p></div></td></tr>';
+  document.getElementById('detailFoot').innerHTML=`<tr><td colspan="4" class="fw-bold">الإجمالي</td><td class="text-success fw-bold">${fmt(totalRev)}</td><td class="text-danger fw-bold">${fmt(totalCost)}</td><td class="${(totalRev-totalCost)>=0?'text-success':'text-danger'} fw-bold">${fmt(totalRev-totalCost)}</td></tr>`;
 }
 
-function exportCSV() {
-  const ops   = filterByDate(DB.getOperations());
-  const cars  = DB.getCars();
-  const costs = filterByDate(DB.getCosts());
-  let csv = '\uFEFF#,التاريخ,العربية,الوجهة,الإيراد,المصاريف,الربح\n';
-  ops.forEach((o,i) => {
-    const car = cars.find(c=>c.id==o.carId);
-    const opCosts = costs.filter(c=>c.carId==o.carId && c.date===o.date);
-    const costAmt = opCosts.reduce((s,c)=>s+Number(c.amount||0),0);
-    csv += `${i+1},${o.date},${car?.plate||'—'},${o.supplier||'—'},${o.revenue||0},${costAmt},${Number(o.revenue||0)-costAmt}\n`;
+function exportCSV(){
+  const ops=filterByDate(_ops);const costs=filterByDate(_costs);
+  let csv='\uFEFF#,التاريخ,العربية,الوجهة,الإيراد,المصاريف,الربح\n';
+  ops.forEach((o,i)=>{
+    const car=_cars.find(c=>c.id==o.carId);
+    const opCosts=costs.filter(c=>c.carId==o.carId&&c.date===o.date);
+    const costAmt=opCosts.reduce((s,c)=>s+Number(c.amount||0),0);
+    csv+=`${i+1},${o.date},${car?.plate||'—'},${o.supplier||'—'},${o.revenue||0},${costAmt},${Number(o.revenue||0)-costAmt}\n`;
   });
-  const blob = new Blob([csv], {type:'text/csv;charset=utf-8'});
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = 'oceanus_report_' + new Date().toISOString().split('T')[0] + '.csv';
-  a.click();
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));a.download='oceanus_'+new Date().toISOString().split('T')[0]+'.csv';a.click();
 }
 
-renderAll();
+async function hardRefresh(){
+  showLoader('جاري التحديث من Sheets...');
+  try{await DB.refreshAll();await loadAll();renderAll();showToast&&showToast('✅ تم التحديث')}
+  catch(e){console.error(e)}finally{hideLoader()}
+}
+
+async function loadAll(){
+  [_ops,_costs,_cars]=await Promise.all([DB.getOperations(),DB.getCosts(),DB.getCars()]);
+}
+
+async function init(){
+  try{
+    showLoader('جاري تحميل البيانات...');
+    await loadAll();
+    renderAll();
+  }catch(e){console.error('Sheets error:',e)}
+  finally{hideLoader()}
+}
+init();
 </script>
 </body>
 </html>
