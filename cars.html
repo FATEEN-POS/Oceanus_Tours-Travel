@@ -59,28 +59,27 @@
 <div class="toast" id="toast"></div>
 <script>
 let editId=null;
+let _cars=[], _ops=[];
 function fmt(n){return Number(n||0).toLocaleString('ar-EG')+' ج.م'}
 function showToast(msg,type=''){const t=document.getElementById('toast');t.textContent=msg;t.className='toast show '+type;setTimeout(()=>t.className='toast',2500)}
 function setLoading(btn,loading){btn.disabled=loading;btn.textContent=loading?'⏳ جاري الحفظ...':'💾 حفظ'}
 
-async function renderStats(){
-  const cars=await DB.getCars();
-  const avail=cars.filter(c=>c.status==='متاح').length;
-  const busy=cars.filter(c=>c.status==='في رحلة').length;
-  const maint=cars.filter(c=>c.status==='صيانة').length;
+function renderStats(){
+  const avail=_cars.filter(c=>c.status==='متاح').length;
+  const busy=_cars.filter(c=>c.status==='في رحلة').length;
+  const maint=_cars.filter(c=>c.status==='صيانة').length;
   document.getElementById('carStats').innerHTML=`
-    <div class="stat-card"><div class="stat-icon">🚌</div><div class="stat-info"><div class="stat-value">${cars.length}</div><div class="stat-label">إجمالي العربيات</div></div></div>
+    <div class="stat-card"><div class="stat-icon">🚌</div><div class="stat-info"><div class="stat-value">${_cars.length}</div><div class="stat-label">إجمالي العربيات</div></div></div>
     <div class="stat-card success"><div class="stat-icon">✅</div><div class="stat-info"><div class="stat-value">${avail}</div><div class="stat-label">متاحة</div></div></div>
     <div class="stat-card coral"><div class="stat-icon">🛣️</div><div class="stat-info"><div class="stat-value">${busy}</div><div class="stat-label">في رحلة</div></div></div>
     <div class="stat-card warning"><div class="stat-icon">🔧</div><div class="stat-info"><div class="stat-value">${maint}</div><div class="stat-label">صيانة</div></div></div>`;
 }
 
-async function renderCars(){
-  const [cars,ops]=await Promise.all([DB.getCars(),DB.getOperations()]);
+function renderCars(){
   const grid=document.getElementById('carsGrid');
-  if(!cars.length){grid.innerHTML='<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">🚌</div><p>لا توجد عربيات مضافة</p></div>';return}
-  grid.innerHTML=cars.map(car=>{
-    const carOps=ops.filter(o=>o.carId==car.id);
+  if(!_cars.length){grid.innerHTML='<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">🚌</div><p>لا توجد عربيات مضافة</p></div>';return}
+  grid.innerHTML=_cars.map(car=>{
+    const carOps=_ops.filter(o=>o.carId==car.id);
     const totalRev=carOps.reduce((s,o)=>s+Number(o.revenue||0),0);
     const statusBadge=car.status==='متاح'?'success':car.status==='في رحلة'?'warning':'danger';
     return `<div class="car-card fade-in">
@@ -102,8 +101,7 @@ async function renderCars(){
 
 function openModal(id=null){
   editId=id;
-  const cars=JSON.parse(localStorage.getItem('oc_cars')||'[]');
-  const car=id?cars.find(c=>c.id===id):null;
+  const car=id?_cars.find(c=>c.id===id):null;
   document.getElementById('modalTitle').textContent=id?'تعديل العربية':'إضافة عربية جديدة';
   document.getElementById('fPlate').value=car?.plate||'';
   document.getElementById('fType').value=car?.type||'باص';
@@ -124,15 +122,15 @@ async function saveCar(){
   try{
     const data={plate,type:document.getElementById('fType').value,capacity:document.getElementById('fCap').value,driver:document.getElementById('fDriver').value,status:document.getElementById('fStatus').value};
     if(editId){
-      const all=await DB.getCars();
-      await DB.setCars(all.map(c=>c.id===editId?{...c,...data}:c));
+      await DB.setCars(_cars.map(c=>c.id===editId?{...c,...data}:c));
       showToast('✅ تم التعديل','success');
     }else{
       await DB.addCar(data);
       showToast('✅ تمت الإضافة','success');
     }
     closeModal();
-    await Promise.all([renderStats(),renderCars()]);
+    _cars=await DB.getCars();
+    renderStats();renderCars();
   }catch(e){showToast('❌ خطأ: '+e.message,'error')}
   finally{setLoading(btn,false)}
 }
@@ -142,15 +140,20 @@ async function deleteCar(id){
   try{
     showLoader('جاري الحذف...');
     await DB.deleteCar(id);
+    _cars=await DB.getCars();
+    renderStats();renderCars();
     showToast('🗑️ تم الحذف');
-    await Promise.all([renderStats(),renderCars()]);
   }catch(e){showToast('❌ '+e.message,'error')}
   finally{hideLoader()}
 }
 
 async function init(){
-  try{await Promise.all([renderStats(),renderCars()])}
-  catch(e){showToast('❌ تعذر الاتصال بـ Sheets','error');console.error(e)}
+  try{
+    showLoader('جاري التحميل...');
+    [_cars,_ops]=await Promise.all([DB.getCars(),DB.getOperations()]);
+    renderStats();renderCars();
+  }catch(e){showToast('❌ تعذر الاتصال بـ Sheets','error');console.error(e)}
+  finally{hideLoader()}
 }
 init();
 </script>

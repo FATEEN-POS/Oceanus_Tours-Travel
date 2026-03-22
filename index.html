@@ -52,7 +52,9 @@
     <div class="welcome-title">أهلاً بك في نظام Oceanus 👋</div>
     <div class="welcome-sub">البيانات على Google Sheets — تشتغل من أي جهاز</div>
   </div>
-  <div class="stats-grid fade-in" id="statsGrid"><div class="stat-card"><div class="stat-icon">⏳</div><div class="stat-info"><div class="stat-value">...</div><div class="stat-label">جاري التحميل من Sheets</div></div></div></div>
+  <div class="stats-grid fade-in" id="statsGrid">
+    <div class="stat-card"><div class="stat-icon">⏳</div><div class="stat-info"><div class="stat-value">...</div><div class="stat-label">جاري التحميل</div></div></div>
+  </div>
   <div class="quick-nav fade-in">
     <a href="cars.html" class="nav-card c1"><div class="icon">🚌</div><span>العربيات</span><small>إدارة الأسطول</small></a>
     <a href="location.html" class="nav-card c2"><div class="icon">📍</div><span>التشغيلات</span><small>الرحلات والإيرادات</small></a>
@@ -72,12 +74,11 @@
 </main>
 <div class="toast" id="toast"></div>
 <script>
-document.getElementById('todayDate').textContent = new Date().toLocaleDateString('ar-EG',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+document.getElementById('todayDate').textContent=new Date().toLocaleDateString('ar-EG',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
 function fmt(n){return Number(n||0).toLocaleString('ar-EG')+' ج.م'}
 function showToast(msg,type=''){const t=document.getElementById('toast');t.textContent=msg;t.className='toast show '+type;setTimeout(()=>t.className='toast',2800)}
 
-async function renderStats(){
-  const [ops,costs,cars]=await Promise.all([DB.getOperations(),DB.getCosts(),DB.getCars()]);
+function renderStats(ops,costs,cars){
   const rev=ops.reduce((s,o)=>s+Number(o.revenue||0),0);
   const cost=costs.reduce((s,c)=>s+Number(c.amount||0),0);
   const profit=rev-cost;
@@ -90,10 +91,9 @@ async function renderStats(){
     <div class="stat-card"><div class="stat-icon">🚌</div><div class="stat-info"><div class="stat-value">${cars.length}</div><div class="stat-label">العربيات (${avail} متاح)</div></div></div>`;
 }
 
-async function renderRecent(){
-  const [ops,costs,cars]=await Promise.all([DB.getOperations(),DB.getCosts(),DB.getCars()]);
-  const rOps=[...ops].sort((a,b)=>b.date?.localeCompare(a.date||'')).slice(0,5);
-  const rCosts=[...costs].sort((a,b)=>b.date?.localeCompare(a.date||'')).slice(0,5);
+function renderRecent(ops,costs,cars){
+  const rOps=[...ops].sort((a,b)=>(b.date||'').localeCompare(a.date||'')).slice(0,5);
+  const rCosts=[...costs].sort((a,b)=>(b.date||'').localeCompare(a.date||'')).slice(0,5);
   const cm={'ثابت':'#3498db','متغير':'var(--coral)','أخري':'var(--warning)'};
   document.getElementById('recentOps').innerHTML=rOps.length?rOps.map(o=>{
     const car=cars.find(c=>c.id==o.carId);
@@ -102,15 +102,30 @@ async function renderRecent(){
   document.getElementById('recentCosts').innerHTML=rCosts.length?rCosts.map(c=>`<div class="activity-item"><div class="activity-dot" style="background:${cm[c.type]||'#aaa'}"></div><div class="info"><p>${c.description}</p><small>${c.date} — ${c.type}</small></div><div class="amount text-danger">-${fmt(c.amount)}</div></div>`).join(''):'<div class="empty-state"><div class="empty-icon">💸</div><p>لا توجد مصاريف</p></div>';
 }
 
-async function hardRefresh(){await DB.refreshAll();await init();showToast('✅ تم التحديث من Sheets','success')}
+async function hardRefresh(){
+  showLoader('جاري التحديث...');
+  await DB.refreshAll();
+  hideLoader();
+  await init();
+  showToast('✅ تم التحديث','success');
+}
+
 async function importData(input){
   if(!input.files[0])return;
   try{await DB.importFromJSON(input.files[0]);await DB.refreshAll();await init();showToast('✅ تم الاستيراد','success')}
   catch(e){showToast('❌ '+e.message,'error')}
 }
+
 async function init(){
-  try{await DB.seedDemo();await Promise.all([renderStats(),renderRecent()])}
-  catch(e){showToast('❌ تعذر الاتصال بـ Sheets','error');console.error(e)}
+  showLoader('جاري الاتصال بـ Google Sheets...');
+  try{
+    const [cars,costs,ops]=await Promise.all([DB.getCars(),DB.getCosts(),DB.getOperations()]);
+    renderStats(ops,costs,cars);
+    renderRecent(ops,costs,cars);
+  }catch(e){
+    showToast('❌ تعذر الاتصال بـ Sheets','error');
+    console.error(e);
+  }finally{hideLoader()}
 }
 init();
 </script>
