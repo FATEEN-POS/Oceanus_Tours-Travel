@@ -1,91 +1,101 @@
-// ===== Oceanus Data Layer — Google Sheets Backend =====
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbw9ersQyd99tkYVrfzZ7fSak1a3YFEMiJ6YsTJodwXoTpbrRgWyH7H9YjK10TUQIgp7/exec';
+// ===== Oceanus Data Layer — Google Sheets + JSONP =====
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbx_o8ooiNY9BQikW-hBZTNfreOYaV8bkGFO6s3lb7fPDbt8QZhH3nOSaOuXR56yN-A2/exec';
 
+// ── Cache ──
 const Cache = {
-  get: (key) => { try { return JSON.parse(localStorage.getItem('oc_' + key)); } catch { return null; } },
-  set: (key, val) => { try { localStorage.setItem('oc_' + key, JSON.stringify(val)); } catch {} },
-  clear: (key) => localStorage.removeItem('oc_' + key),
+  get: (k) => { try { return JSON.parse(localStorage.getItem('oc_'+k)); } catch { return null; } },
+  set: (k, v) => { try { localStorage.setItem('oc_'+k, JSON.stringify(v)); } catch {} },
+  clear: (k) => localStorage.removeItem('oc_'+k),
 };
 
-async function gasGet(tab) {
-  const res = await fetch(`${GAS_URL}?action=read&tab=${tab}`, {
-    method: 'GET',
-    redirect: 'follow',
+// ── JSONP GET (bypasses CORS completely) ──
+function gasGet(tab) {
+  return new Promise((resolve, reject) => {
+    const cbName = '_cb_' + tab + '_' + Date.now();
+    const script = document.createElement('script');
+    const timer = setTimeout(() => {
+      delete window[cbName];
+      script.remove();
+      reject(new Error('Timeout reading ' + tab));
+    }, 15000);
+
+    window[cbName] = (data) => {
+      clearTimeout(timer);
+      delete window[cbName];
+      script.remove();
+      resolve(data);
+    };
+
+    script.src = `${GAS_URL}?action=read&tab=${tab}&callback=${cbName}`;
+    script.onerror = () => {
+      clearTimeout(timer);
+      delete window[cbName];
+      script.remove();
+      reject(new Error('Script error reading ' + tab));
+    };
+    document.head.appendChild(script);
   });
-  const json = await res.json();
-  if (json.status !== 'ok') throw new Error('Read failed: ' + tab);
-  return json.data;
 }
 
-async function gasPost(tab, objects) {
-  // no-cors: write goes through but response is opaque — update cache directly
+// ── POST (no-cors — write only, no response needed) ──
+function gasPost(tab, rows) {
   fetch(GAS_URL, {
     method: 'POST',
     mode: 'no-cors',
     headers: { 'Content-Type': 'text/plain' },
-    body: JSON.stringify({ action: 'write', tab, data: objects }),
-  });
-  // cache updated immediately so UI is instant
+    body: JSON.stringify({ action: 'write', tab, data: rows }),
+  }).catch(() => {});
 }
 
+// ── Schemas ──
 const Schemas = {
   cars:       ['id','plate','type','capacity','driver','status'],
   locations:  ['id','name','type','distance','duration'],
   costs:      ['id','date','type','description','amount','carId'],
   operations: ['id','date','carId','locationId','supplier','revenue','notes'],
 };
-
-const numericFields = new Set(['id','amount','carId','locationId','capacity','distance','revenue']);
+const numFields = new Set(['id','amount','carId','locationId','capacity','distance','revenue']);
 
 function rowsToObjects(tab, rows) {
   if (!rows || rows.length < 2) return [];
   const headers = Schemas[tab];
-  return rows.slice(1).filter(r => r[0] !== '' && r[0] !== undefined && r[0] !== null).map(row => {
+  return rows.slice(1).filter(r => r[0] !== '' && r[0] != null).map(row => {
     const obj = {};
     headers.forEach((h, i) => {
       const v = row[i];
-      if (numericFields.has(h)) {
-        obj[h] = (v === '' || v === null || v === undefined) ? null : Number(v);
-      } else {
-        obj[h] = (v === undefined || v === null) ? '' : String(v);
-      }
+      obj[h] = numFields.has(h) ? (v === '' || v == null ? null : Number(v)) : (v == null ? '' : String(v));
     });
     return obj;
   });
 }
 
 function objectsToRows(tab, objects) {
-  const headers = Schemas[tab];
-  const rows = [headers];
-  objects.forEach(obj => {
-    rows.push(headers.map(h => (obj[h] !== undefined && obj[h] !== null) ? obj[h] : ''));
-  });
-  return rows;
+  const h = Schemas[tab];
+  return [h, ...objects.map(o => h.map(k => o[k] != null ? o[k] : ''))];
 }
 
-function showLoader(msg = 'جاري التحميل...') {
-  let el = document.getElementById('_gasLoader');
+// ── Loader ──
+function showLoader(msg='جاري التحميل...') {
+  let el = document.getElementById('_gl');
   if (!el) {
     el = document.createElement('div');
-    el.id = '_gasLoader';
-    el.style.cssText = 'position:fixed;inset:0;background:rgba(26,58,92,0.6);backdrop-filter:blur(4px);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1rem;font-family:Tajawal,sans-serif;color:white;font-size:1.1rem;font-weight:600';
-    el.innerHTML = '<div style="width:48px;height:48px;border:4px solid rgba(255,255,255,0.25);border-top-color:white;border-radius:50%;animation:_spin .8s linear infinite"></div><div id="_gasMsg"></div><style>@keyframes _spin{to{transform:rotate(360deg)}}</style>';
+    el.id = '_gl';
+    el.style.cssText = 'position:fixed;inset:0;background:rgba(26,58,92,0.65);backdrop-filter:blur(4px);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1rem;font-family:Tajawal,sans-serif;color:white;font-size:1.1rem;font-weight:600';
+    el.innerHTML = '<div style="width:48px;height:48px;border:4px solid rgba(255,255,255,0.2);border-top-color:white;border-radius:50%;animation:sp .8s linear infinite"></div><div id="_gm"></div><style>@keyframes sp{to{transform:rotate(360deg)}}</style>';
     document.body.appendChild(el);
   }
-  document.getElementById('_gasMsg').textContent = msg;
+  document.getElementById('_gm').textContent = msg;
   el.style.display = 'flex';
 }
 function hideLoader() {
-  const el = document.getElementById('_gasLoader');
+  const el = document.getElementById('_gl');
   if (el) el.style.display = 'none';
 }
 
+// ── DB ──
 const DB = {
-  async fetchTab(tab, force = false) {
-    if (!force) {
-      const cached = Cache.get(tab);
-      if (cached) return cached;
-    }
+  async fetchTab(tab, force=false) {
+    if (!force) { const c = Cache.get(tab); if (c) return c; }
     const rows = await gasGet(tab);
     const objs = rowsToObjects(tab, rows);
     Cache.set(tab, objs);
@@ -93,51 +103,43 @@ const DB = {
   },
 
   async saveTab(tab, objects) {
-    Cache.set(tab, objects);             // instant UI update
-    gasPost(tab, objectsToRows(tab, objects)); // async write to Sheets
+    Cache.set(tab, objects);
+    gasPost(tab, objectsToRows(tab, objects));
   },
 
-  // Cars
   async getCars()          { return DB.fetchTab('cars'); },
   async setCars(d)         { return DB.saveTab('cars', d); },
-  async addCar(car)        { const a = await DB.getCars(); car.id = Date.now(); a.push(car); await DB.setCars(a); return car; },
-  async deleteCar(id)      { const a = await DB.getCars(); await DB.setCars(a.filter(c => c.id != id)); },
+  async addCar(car)        { const a=await DB.getCars(); car.id=Date.now(); a.push(car); await DB.setCars(a); return car; },
+  async deleteCar(id)      { const a=await DB.getCars(); await DB.setCars(a.filter(c=>c.id!=id)); },
 
-  // Locations
   async getLocations()     { return DB.fetchTab('locations'); },
   async setLocations(d)    { return DB.saveTab('locations', d); },
-  async addLocation(loc)   { const a = await DB.getLocations(); loc.id = Date.now(); a.push(loc); await DB.setLocations(a); return loc; },
-  async deleteLocation(id) { const a = await DB.getLocations(); await DB.setLocations(a.filter(l => l.id != id)); },
+  async addLocation(loc)   { const a=await DB.getLocations(); loc.id=Date.now(); a.push(loc); await DB.setLocations(a); return loc; },
+  async deleteLocation(id) { const a=await DB.getLocations(); await DB.setLocations(a.filter(l=>l.id!=id)); },
 
-  // Costs
   async getCosts()         { return DB.fetchTab('costs'); },
   async setCosts(d)        { return DB.saveTab('costs', d); },
-  async addCost(cost)      { const a = await DB.getCosts(); cost.id = Date.now(); cost.date = cost.date || new Date().toISOString().split('T')[0]; a.push(cost); await DB.setCosts(a); return cost; },
-  async deleteCost(id)     { const a = await DB.getCosts(); await DB.setCosts(a.filter(c => c.id != id)); },
+  async addCost(cost)      { const a=await DB.getCosts(); cost.id=Date.now(); cost.date=cost.date||new Date().toISOString().split('T')[0]; a.push(cost); await DB.setCosts(a); return cost; },
+  async deleteCost(id)     { const a=await DB.getCosts(); await DB.setCosts(a.filter(c=>c.id!=id)); },
 
-  // Operations
   async getOperations()    { return DB.fetchTab('operations'); },
   async setOperations(d)   { return DB.saveTab('operations', d); },
-  async addOperation(op)   { const a = await DB.getOperations(); op.id = Date.now(); op.date = op.date || new Date().toISOString().split('T')[0]; a.push(op); await DB.setOperations(a); return op; },
-  async deleteOperation(id){ const a = await DB.getOperations(); await DB.setOperations(a.filter(o => o.id != id)); },
+  async addOperation(op)   { const a=await DB.getOperations(); op.id=Date.now(); op.date=op.date||new Date().toISOString().split('T')[0]; a.push(op); await DB.setOperations(a); return op; },
+  async deleteOperation(id){ const a=await DB.getOperations(); await DB.setOperations(a.filter(o=>o.id!=id)); },
 
-  async refreshAll() { ['cars','locations','costs','operations'].forEach(t => Cache.clear(t)); },
+  async refreshAll() { ['cars','locations','costs','operations'].forEach(t=>Cache.clear(t)); },
 
   async exportToJSON() {
     showLoader('جاري التصدير...');
     try {
       const data = {
-        cars:       await DB.fetchTab('cars', true),
-        locations:  await DB.fetchTab('locations', true),
-        costs:      await DB.fetchTab('costs', true),
-        operations: await DB.fetchTab('operations', true),
+        cars: await DB.fetchTab('cars',true), locations: await DB.fetchTab('locations',true),
+        costs: await DB.fetchTab('costs',true), operations: await DB.fetchTab('operations',true),
         exportedAt: new Date().toISOString()
       };
-      const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
       const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = 'oceanus_backup_' + new Date().toISOString().split('T')[0] + '.json';
-      a.click();
+      a.href = URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}));
+      a.download = 'oceanus_'+new Date().toISOString().split('T')[0]+'.json'; a.click();
     } finally { hideLoader(); }
   },
 
@@ -161,11 +163,11 @@ const DB = {
   },
 
   async seedDemo() {
+    showLoader('جاري الاتصال بـ Google Sheets...');
     try {
-      showLoader('جاري الاتصال بـ Google Sheets...');
       const cars = await DB.fetchTab('cars', true);
       if (cars.length > 0) return;
-      showLoader('أول تشغيل — جاري إنشاء البيانات التجريبية...');
+      showLoader('أول تشغيل — جاري إنشاء بيانات تجريبية...');
       await DB.setCars([
         {id:1,plate:'أ ب ج 1234',type:'باص',capacity:50,driver:'محمد أحمد',status:'متاح'},
         {id:2,plate:'د هـ و 5678',type:'ميكروباص',capacity:14,driver:'خالد محمود',status:'في رحلة'},
