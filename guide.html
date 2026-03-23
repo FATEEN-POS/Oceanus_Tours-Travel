@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Oceanus — دليل الاستخدام</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --primary: #1a3a5c;
+  --primary-light: #234e7d;
+  --accent-blue: #2d6ea8;
+  --accent-orange: #e8890c;
+  --accent-green: #2ecc71;
+  --accent-red: #e74c3c;
+  --accent-teal: #1abc9c;
+  --bg: #eef2f7;
+  --bg-card: #ffffff;
+  --text: #1a2533;
+  --text-muted: #7f8c9a;
+  --border: #dde3ec;
+  --shadow: 0 2px 12px rgba(26,58,92,0.08);
+  --shadow-hover: 0 8px 24px rgba(26,58,92,0.15);
+  --radius: 14px;
+  --radius-sm: 8px;
+  --topbar-height: 60px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Cairo',sans-serif;background:var(--bg);color:var(--text);direction:rtl;min-height:100vh}
+
+/* TOPBAR */
+.topbar{position:fixed;top:0;left:0;right:0;height:var(--topbar-height);background:var(--bg-card);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 24px;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,0.05)}
+.topbar-logo{display:flex;align-items:center;gap:10px}
+.logo-box{width:36px;height:36px;background:var(--primary);border-radius:8px;display:flex;align-items:center;justify-content:center;color:white;font-weight:900;font-size:16px}
+.logo-text span{font-size:20px;font-weight:900;color:var(--primary);letter-spacing:-.5px;display:block;line-height:1.1}
+.logo-text small{font-size:10px;color:var(--text-muted);font-weight:400}
+.back-btn{display:flex;align-items:center;gap:6px;padding:7px 16px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--bg);color:var(--text);font-family:'Cairo',sans-serif;font-size:13px;font-weight:600;cursor:pointer;text-decoration:none;transition:all .2s}
+.back-btn:hover{background:var(--primary);color:white;border-color:var(--primary)}
+
+/* LAYOUT */
+.guide-layout{display:grid;grid-template-columns:240px 1fr;gap:0;margin-top:var(--topbar-height);min-height:calc(100vh - var(--topbar-height))}
+
+/* SIDEBAR TOC */
+.toc{position:sticky;top:var(--topbar-height);height:calc(100vh - var(--topbar-height));overflow-y:auto;background:var(--primary);padding:24px 0}
+.toc-title{font-size:11px;font-weight:700;color:rgba(255,255,255,0.4);letter-spacing:1px;text-transform:uppercase;padding:0 20px;margin-bottom:12px}
+.toc-item{display:flex;align-items:center;gap:10px;padding:10px 20px;color:rgba(255,255,255,0.65);cursor:pointer;font-size:13px;font-weight:600;border-right:3px solid transparent;transition:all .2s;text-decoration:none}
+.toc-item:hover{background:rgba(255,255,255,0.08);color:white}
+.toc-item.active{background:rgba(255,255,255,0.12);color:white;border-right-color:var(--accent-orange)}
+.toc-item .toc-icon{font-size:16px;width:22px;text-align:center}
+.toc-divider{height:1px;background:rgba(255,255,255,0.08);margin:12px 20px}
+
+/* CONTENT */
+.guide-content{padding:40px 48px;max-width:860px}
+
+/* HERO */
+.guide-hero{background:var(--primary);border-radius:var(--radius);padding:36px 40px;margin-bottom:40px;position:relative;overflow:hidden}
+.guide-hero::before{content:'Guide';position:absolute;left:-10px;top:50%;transform:translateY(-50%);font-size:90px;font-weight:900;color:rgba(255,255,255,0.04);pointer-events:none}
+.guide-hero h1{color:white;font-size:26px;font-weight:900;margin-bottom:8px}
+.guide-hero p{color:rgba(255,255,255,0.7);font-size:14px;line-height:1.7}
+.guide-hero .version{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,0.1);color:rgba(255,255,255,0.8);padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600;margin-bottom:14px}
+
+/* SECTION */
+.guide-section{margin-bottom:48px;scroll-margin-top:80px}
+.section-header{display:flex;align-items:center;gap:12px;margin-bottom:20px;padding-bottom:14px;border-bottom:2px solid var(--border)}
+.section-icon{width:44px;height:44px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
+.section-icon.blue{background:#e8f0fa}
+.section-icon.orange{background:#fef3e2}
+.section-icon.green{background:#e8f8f1}
+.section-icon.red{background:#fde8e8}
+.section-icon.purple{background:#f3e8fa}
+.section-icon.teal{background:#e8f8f5}
+.section-title{font-size:20px;font-weight:900;color:var(--primary)}
+.section-subtitle{font-size:13px;color:var(--text-muted);margin-top:2px}
+
+/* CARD */
+.guide-card{background:var(--bg-card);border-radius:var(--radius);border:1px solid var(--border);box-shadow:var(--shadow);padding:24px;margin-bottom:16px}
+.guide-card h3{font-size:15px;font-weight:800;color:var(--primary);margin-bottom:12px;display:flex;align-items:center;gap:8px}
+
+/* STEPS */
+.steps{counter-reset:step;display:flex;flex-direction:column;gap:16px}
+.step{display:flex;gap:16px;align-items:flex-start}
+.step-num{width:32px;height:32px;border-radius:50%;background:var(--primary);color:white;font-weight:900;font-size:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px}
+.step-body h4{font-size:14px;font-weight:700;color:var(--primary);margin-bottom:4px}
+.step-body p{font-size:13px;color:var(--text-muted);line-height:1.7}
+
+/* FIELDS TABLE */
+.fields-table{width:100%;border-collapse:collapse;font-size:13px}
+.fields-table th{background:var(--bg);color:var(--text-muted);font-weight:700;padding:10px 14px;text-align:right;border-bottom:1px solid var(--border)}
+.fields-table td{padding:10px 14px;border-bottom:1px solid var(--border);color:var(--text);vertical-align:top}
+.fields-table tr:last-child td{border-bottom:none}
+.fields-table tr:hover td{background:#f8fafc}
+.required{color:var(--accent-red);font-weight:700}
+.optional{color:var(--text-muted)}
+
+/* BADGE */
+.badge{display:inline-flex;align-items:center;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700}
+.badge-green{background:#e8f8f1;color:#27ae60}
+.badge-orange{background:#fef3e2;color:#e67e22}
+.badge-red{background:#fde8e8;color:#e74c3c}
+.badge-blue{background:#e8f0fa;color:#2d6ea8}
+
+/* TIP */
+.tip{display:flex;gap:12px;padding:14px 16px;border-radius:var(--radius-sm);margin-top:16px;font-size:13px;line-height:1.7}
+.tip.info{background:#e8f0fa;border-right:4px solid var(--accent-blue)}
+.tip.warning{background:#fef3e2;border-right:4px solid var(--accent-orange)}
+.tip.success{background:#e8f8f1;border-right:4px solid var(--accent-green)}
+.tip.danger{background:#fde8e8;border-right:4px solid var(--accent-red)}
+.tip-icon{font-size:18px;flex-shrink:0;margin-top:1px}
+.tip-body strong{display:block;font-weight:700;margin-bottom:2px;color:var(--text)}
+.tip-body span{color:var(--text-muted)}
+
+/* GRID */
+.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:640px){.info-grid{grid-template-columns:1fr}}
+
+/* MODULE CARD */
+.module-card{background:var(--bg-card);border-radius:var(--radius);border:1px solid var(--border);box-shadow:var(--shadow);padding:20px;display:flex;align-items:flex-start;gap:14px;transition:box-shadow .2s}
+.module-card:hover{box-shadow:var(--shadow-hover)}
+.module-card .m-icon{width:48px;height:48px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0}
+.module-card .m-info h4{font-size:15px;font-weight:800;color:var(--primary);margin-bottom:4px}
+.module-card .m-info p{font-size:12px;color:var(--text-muted);line-height:1.6}
+
+/* SHORTCUT */
+.shortcuts{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.shortcut{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--bg);border-radius:var(--radius-sm);font-size:13px}
+.shortcut span{color:var(--text-muted)}
+.kbd{background:var(--bg-card);border:1px solid var(--border);border-radius:4px;padding:2px 8px;font-size:12px;font-weight:700;color:var(--primary);box-shadow:0 1px 3px rgba(0,0,0,0.1)}
+
+@media(max-width:900px){
+  .guide-layout{grid-template-columns:1fr}
+  .toc{display:none}
+  .guide-content{padding:24px 20px}
+}
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="topbar-logo">
+    <div class="logo-box">O</div>
+    <div class="logo-text">
+      <span>Oceanus</span>
+      <small>TOURS & TRAVEL</small>
+    </div>
+  </div>
+  <a href="index.html" class="back-btn">← العودة للنظام</a>
+</div>
+
+<div class="guide-layout">
+
+  <!-- TOC SIDEBAR -->
+  <nav class="toc">
+    <div class="toc-title">المحتويات</div>
+    <a class="toc-item active" href="#overview" onclick="setActive(this)"><span class="toc-icon">🏠</span> نظرة عامة</a>
+    <a class="toc-item" href="#start" onclick="setActive(this)"><span class="toc-icon">🚀</span> البداية السريعة</a>
+    <div class="toc-divider"></div>
+    <div class="toc-title">الأقسام</div>
+    <a class="toc-item" href="#vehicles" onclick="setActive(this)"><span class="toc-icon">🚌</span> العربيات</a>
+    <a class="toc-item" href="#operations" onclick="setActive(this)"><span class="toc-icon">🚀</span> التشغيلات</a>
+    <a class="toc-item" href="#expenses" onclick="setActive(this)"><span class="toc-icon">💸</span> المصاريف</a>
+    <a class="toc-item" href="#reports" onclick="setActive(this)"><span class="toc-icon">📊</span> التقارير</a>
+    <div class="toc-divider"></div>
+    <a class="toc-item" href="#tips" onclick="setActive(this)"><span class="toc-icon">💡</span> نصائح وتنبيهات</a>
+    <a class="toc-item" href="#faq" onclick="setActive(this)"><span class="toc-icon">❓</span> أسئلة شائعة</a>
+  </nav>
+
+  <!-- MAIN CONTENT -->
+  <main class="guide-content">
+
+    <!-- HERO -->
+    <div class="guide-hero">
+      <div class="version">📖 دليل الاستخدام — v1.0</div>
+      <h1>دليل نظام Oceanus الكامل</h1>
+      <p>كل ما تحتاج معرفته لإدارة رحلاتك وعرباتك ومصاريفك بكفاءة عالية. اقرأ هذا الدليل مرة واحدة وستتقن النظام بالكامل.</p>
+    </div>
+
+    <!-- OVERVIEW -->
+    <section class="guide-section" id="overview">
+      <div class="section-header">
+        <div class="section-icon blue">🏠</div>
+        <div>
+          <div class="section-title">نظرة عامة على النظام</div>
+          <div class="section-subtitle">ما هو Oceanus وكيف يعمل؟</div>
+        </div>
+      </div>
+
+      <p style="font-size:14px;line-height:1.8;color:var(--text-muted);margin-bottom:20px">
+        Oceanus هو نظام إدارة متكامل لشركات السياحة والرحلات. يعمل من المتصفح مباشرة ويحفظ البيانات على Google Sheets، مما يعني إمكانية الوصول من أي جهاز في أي وقت.
+      </p>
+
+      <div class="info-grid">
+        <div class="module-card">
+          <div class="m-icon blue">🚌</div>
+          <div class="m-info"><h4>العربيات</h4><p>تسجيل وإدارة الأسطول بالكامل — النوع، الماركة، الموديل، اللوحة، والحالة</p></div>
+        </div>
+        <div class="module-card">
+          <div class="m-icon orange">🚀</div>
+          <div class="m-info"><h4>التشغيلات</h4><p>تسجيل كل رحلة يومياً مع العربية والمورد والوجهة والإيراد</p></div>
+        </div>
+        <div class="module-card">
+          <div class="m-icon green">💸</div>
+          <div class="m-info"><h4>المصاريف</h4><p>تتبع كل مصروف وتصنيفه (ثابت / متغير / أخرى) مع ربطه بالتشغيلة</p></div>
+        </div>
+        <div class="module-card">
+          <div class="m-icon purple">📊</div>
+          <div class="m-info"><h4>التقارير</h4><p>إحصائيات فورية لصافي الربح وأداء كل عربية وكل وجهة</p></div>
+        </div>
+      </div>
+
+      <div class="tip info" style="margin-top:20px">
+        <span class="tip-icon">ℹ️</span>
+        <div class="tip-body">
+          <strong>البيانات محفوظة على Google Sheets</strong>
+          <span>كل ما تضيفه أو تعدله يُحفظ تلقائياً في الشيت الخاص بك ويظهر فوراً على أي جهاز آخر.</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- START -->
+    <section class="guide-section" id="start">
+      <div class="section-header">
+        <div class="section-icon orange">🚀</div>
+        <div>
+          <div class="section-title">البداية السريعة</div>
+          <div class="section-subtitle">الخطوات الأولى للبدء باستخدام النظام</div>
+        </div>
+      </div>
+
+      <div class="guide-card">
+        <h3>🔑 الاتصال بـ Google Sheets</h3>
+        <div class="steps">
+          <div class="step">
+            <div class="step-num">1</div>
+            <div class="step-body">
+              <h4>افتح النظام</h4>
+              <p>افتح ملف <code style="background:var(--bg);padding:2px 6px;border-radius:4px;font-size:12px">index.html</code> في أي متصفح حديث (Chrome أو Edge أو Firefox).</p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">2</div>
+            <div class="step-body">
+              <h4>انتظر التهيئة</h4>
+              <p>سيظهر إشعار "جاري تهيئة النظام" لثوانٍ قليلة بينما يتصل النظام بـ Google Sheets.</p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">3</div>
+            <div class="step-body">
+              <h4>ابدأ بإضافة العربيات أولاً</h4>
+              <p>الترتيب الصح: أضف العربيات أولاً ← ثم التشغيلات ← ثم المصاريف. هذا الترتيب يضمن ربط البيانات بشكل صحيح.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="tip warning">
+        <span class="tip-icon">⚠️</span>
+        <div class="tip-body">
+          <strong>مهم: الترتيب الصحيح للإدخال</strong>
+          <span>لازم تضيف العربيات قبل ما تبدأ تسجل تشغيلات، لأن كل تشغيلة بتحتاج تختار عربية من الأسطول.</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- VEHICLES -->
+    <section class="guide-section" id="vehicles">
+      <div class="section-header">
+        <div class="section-icon blue">🚌</div>
+        <div>
+          <div class="section-title">العربيات</div>
+          <div class="section-subtitle">إدارة أسطول العربيات بالكامل</div>
+        </div>
+      </div>
+
+      <p style="font-size:14px;line-height:1.8;color:var(--text-muted);margin-bottom:16px">
+        قسم العربيات هو الأساس. كل عربية في الأسطول بيكون ليها ملف خاص بيتتبع إيراداتها ورحلاتها.
+      </p>
+
+      <div class="guide-card">
+        <h3>➕ إضافة عربية جديدة</h3>
+        <div class="steps">
+          <div class="step">
+            <div class="step-num">1</div>
+            <div class="step-body"><h4>اضغط "إضافة عربية"</h4><p>زرار أزرق في أعلى يمين صفحة العربيات.</p></div>
+          </div>
+          <div class="step">
+            <div class="step-num">2</div>
+            <div class="step-body"><h4>ادخل بيانات العربية</h4><p>اختر النوع والماركة والموديل وادخل رقم اللوحة وسنة الصنع.</p></div>
+          </div>
+          <div class="step">
+            <div class="step-num">3</div>
+            <div class="step-body"><h4>اضبط الحالة</h4><p>اختر الحالة الحالية للعربية: نشطة / في الصيانة / متوقفة.</p></div>
+          </div>
+          <div class="step">
+            <div class="step-num">4</div>
+            <div class="step-body"><h4>اضغط حفظ</h4><p>البيانات بتتحفظ فوراً في Google Sheets.</p></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="guide-card">
+        <h3>📋 حقول العربية</h3>
+        <table class="fields-table">
+          <thead><tr><th>الحقل</th><th>الوصف</th><th>مثال</th><th>مطلوب؟</th></tr></thead>
+          <tbody>
+            <tr><td><strong>النوع</strong></td><td>نوع العربية</td><td>ميكروباص / باص / سيارة / فان</td><td><span class="required">مطلوب</span></td></tr>
+            <tr><td><strong>الماركة</strong></td><td>الشركة المصنعة</td><td>Toyota، Hyundai، Mercedes</td><td><span class="optional">اختياري</span></td></tr>
+            <tr><td><strong>الموديل</strong></td><td>موديل العربية</td><td>Coaster، H1، Sprinter</td><td><span class="optional">اختياري</span></td></tr>
+            <tr><td><strong>رقم اللوحة</strong></td><td>اللوحة المعدنية — ده هو المعرف الرئيسي</td><td>أ ب ج 1234</td><td><span class="required">مطلوب</span></td></tr>
+            <tr><td><strong>سنة الصنع</strong></td><td>سنة تصنيع العربية</td><td>2020</td><td><span class="optional">اختياري</span></td></tr>
+            <tr><td><strong>الحالة</strong></td><td>الوضع الحالي للعربية</td><td>نشطة / في الصيانة / متوقفة</td><td><span class="required">مطلوب</span></td></tr>
+            <tr><td><strong>ملاحظات</strong></td><td>أي معلومات إضافية</td><td>تحتاج فحص دوري في مارس</td><td><span class="optional">اختياري</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="info-grid">
+        <div class="tip success">
+          <span class="tip-icon">✅</span>
+          <div class="tip-body"><strong>تعديل عربية</strong><span>اضغط زرار ✏️ بجانب أي عربية لتعديل بياناتها.</span></div>
+        </div>
+        <div class="tip danger">
+          <span class="tip-icon">🗑️</span>
+          <div class="tip-body"><strong>حذف عربية</strong><span>اضغط زرار 🗑️ — الحذف نهائي ولا يمكن التراجع عنه.</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- OPERATIONS -->
+    <section class="guide-section" id="operations">
+      <div class="section-header">
+        <div class="section-icon orange">🚀</div>
+        <div>
+          <div class="section-title">التشغيلات</div>
+          <div class="section-subtitle">تسجيل الرحلات اليومية والإيرادات</div>
+        </div>
+      </div>
+
+      <p style="font-size:14px;line-height:1.8;color:var(--text-muted);margin-bottom:16px">
+        التشغيلة هي أي رحلة تقوم بها عربية من الأسطول. سواء رحلة يومية أو رحلة لمجموعة سياحية — كل رحلة بتتسجل كتشغيلة منفصلة.
+      </p>
+
+      <div class="guide-card">
+        <h3>➕ إضافة تشغيلة جديدة</h3>
+        <div class="steps">
+          <div class="step">
+            <div class="step-num">1</div>
+            <div class="step-body"><h4>اضغط "إضافة تشغيلة"</h4><p>سيفتح نموذج الإضافة مع تاريخ اليوم محدد تلقائياً.</p></div>
+          </div>
+          <div class="step">
+            <div class="step-num">2</div>
+            <div class="step-body"><h4>حدد التاريخ والعربية</h4><p>اختر التاريخ الصح ثم اختر العربية من القائمة (العربيات اللي أضفتها مسبقاً).</p></div>
+          </div>
+          <div class="step">
+            <div class="step-num">3</div>
+            <div class="step-body"><h4>ادخل تفاصيل الرحلة</h4><p>المورد (من طلب الرحلة)، الوجهة (مثلاً: الأقصر، أبو سمبل)، والإيراد بالجنيه.</p></div>
+          </div>
+          <div class="step">
+            <div class="step-num">4</div>
+            <div class="step-body"><h4>حدد الحالة واحفظ</h4><p>مكتملة / جارية / ملغية — ثم اضغط حفظ.</p></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="guide-card">
+        <h3>📋 حقول التشغيلة</h3>
+        <table class="fields-table">
+          <thead><tr><th>الحقل</th><th>الوصف</th><th>مثال</th><th>مطلوب؟</th></tr></thead>
+          <tbody>
+            <tr><td><strong>التاريخ</strong></td><td>تاريخ الرحلة</td><td>2025-03-15</td><td><span class="required">مطلوب</span></td></tr>
+            <tr><td><strong>العربية</strong></td><td>العربية المستخدمة في الرحلة</td><td>أ ب ج 1234 - Toyota Coaster</td><td><span class="optional">اختياري</span></td></tr>
+            <tr><td><strong>المورد</strong></td><td>الشخص أو الجهة اللي طلبت الرحلة</td><td>فندق Marriott، شركة Nile Tours</td><td><span class="optional">اختياري</span></td></tr>
+            <tr><td><strong>الوجهة</strong></td><td>المكان اللي بتروحه الرحلة</td><td>الأقصر، أبو سمبل، المطار</td><td><span class="required">مطلوب</span></td></tr>
+            <tr><td><strong>الإيراد</strong></td><td>المبلغ المحصّل من الرحلة بالجنيه</td><td>5000</td><td><span class="optional">اختياري</span></td></tr>
+            <tr><td><strong>الحالة</strong></td><td>وضع الرحلة الحالي</td><td>مكتملة / جارية / ملغية</td><td><span class="required">مطلوب</span></td></tr>
+            <tr><td><strong>ملاحظات</strong></td><td>أي تفاصيل إضافية</td><td>مجموعة 20 فرد، دفع مقدم</td><td><span class="optional">اختياري</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="guide-card">
+        <h3>🏷️ حالات التشغيلة</h3>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <div style="display:flex;align-items:center;gap:12px;padding:10px;background:var(--bg);border-radius:var(--radius-sm)">
+            <span class="badge badge-green">مكتملة</span>
+            <span style="font-size:13px;color:var(--text-muted)">الرحلة اتنفذت بنجاح وتم تحصيل الإيراد</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:12px;padding:10px;background:var(--bg);border-radius:var(--radius-sm)">
+            <span class="badge badge-blue">جارية</span>
+            <span style="font-size:13px;color:var(--text-muted)">الرحلة لسه شغالة أو لم يتم تأكيد الإيراد بعد</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:12px;padding:10px;background:var(--bg);border-radius:var(--radius-sm)">
+            <span class="badge badge-red">ملغية</span>
+            <span style="font-size:13px;color:var(--text-muted)">الرحلة اتألغت — لا تُحذف عشان تفضل في السجلات</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- EXPENSES -->
+    <section class="guide-section" id="expenses">
+      <div class="section-header">
+        <div class="section-icon green">💸</div>
+        <div>
+          <div class="section-title">المصاريف</div>
+          <div class="section-subtitle">تتبع وتصنيف كل المصاريف</div>
+        </div>
+      </div>
+
+      <p style="font-size:14px;line-height:1.8;color:var(--text-muted);margin-bottom:16px">
+        قسم المصاريف بيسجل كل مصروف تتكبده الشركة. المصاريف ممكن تتربط بتشغيلة معينة أو تكون مصروف عام للشركة.
+      </p>
+
+      <div class="guide-card">
+        <h3>📋 حقول المصروف</h3>
+        <table class="fields-table">
+          <thead><tr><th>الحقل</th><th>الوصف</th><th>مثال</th><th>مطلوب؟</th></tr></thead>
+          <tbody>
+            <tr><td><strong>التاريخ</strong></td><td>تاريخ المصروف</td><td>2025-03-15</td><td><span class="required">مطلوب</span></td></tr>
+            <tr><td><strong>التشغيلة</strong></td><td>كود التشغيلة اللي المصروف تابع ليها (اختياري)</td><td>OP123456</td><td><span class="optional">اختياري</span></td></tr>
+            <tr><td><strong>النوع</strong></td><td>تصنيف المصروف</td><td>ثابت / متغير / أخرى</td><td><span class="required">مطلوب</span></td></tr>
+            <tr><td><strong>البند</strong></td><td>وصف المصروف</td><td>بنزين، صيانة، إيجار مكتب</td><td><span class="required">مطلوب</span></td></tr>
+            <tr><td><strong>المبلغ</strong></td><td>قيمة المصروف بالجنيه</td><td>800</td><td><span class="required">مطلوب</span></td></tr>
+            <tr><td><strong>ملاحظات</strong></td><td>تفاصيل إضافية</td><td>فاتورة بنزين رحلة الأقصر</td><td><span class="optional">اختياري</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="guide-card">
+        <h3>🏷️ أنواع المصاريف</h3>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <div style="display:flex;align-items:flex-start;gap:12px;padding:14px;background:var(--bg);border-radius:var(--radius-sm)">
+            <span class="badge badge-blue" style="margin-top:2px">ثابت</span>
+            <div>
+              <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:3px">مصاريف ثابتة</div>
+              <div style="font-size:12px;color:var(--text-muted)">بتتكرر بانتظام بغض النظر عن عدد الرحلات. مثال: إيجار المكتب، رواتب الموظفين، اشتراكات.</div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:flex-start;gap:12px;padding:14px;background:var(--bg);border-radius:var(--radius-sm)">
+            <span class="badge badge-orange" style="margin-top:2px">متغير</span>
+            <div>
+              <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:3px">مصاريف متغيرة</div>
+              <div style="font-size:12px;color:var(--text-muted)">بتتغير حسب عدد الرحلات. مثال: بنزين، صيانة العربيات، رسوم الطرق.</div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:flex-start;gap:12px;padding:14px;background:var(--bg);border-radius:var(--radius-sm)">
+            <span class="badge badge-red" style="margin-top:2px">أخرى</span>
+            <div>
+              <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:3px">مصاريف أخرى</div>
+              <div style="font-size:12px;color:var(--text-muted)">مصاريف غير منتظمة. مثال: إعلانات، مطبوعات، مصاريف طارئة.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="tip info">
+        <span class="tip-icon">💡</span>
+        <div class="tip-body">
+          <strong>ربط المصروف بالتشغيلة</strong>
+          <span>لو المصروف خاص برحلة معينة (زي بنزين رحلة الأقصر)، حط كود التشغيلة في حقل "التشغيلة". ده هيظهر في تقرير أداء العربيات بشكل صح.</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- REPORTS -->
+    <section class="guide-section" id="reports">
+      <div class="section-header">
+        <div class="section-icon purple">📊</div>
+        <div>
+          <div class="section-title">التقارير</div>
+          <div class="section-subtitle">إحصائيات فورية لأداء الشركة</div>
+        </div>
+      </div>
+
+      <p style="font-size:14px;line-height:1.8;color:var(--text-muted);margin-bottom:16px">
+        صفحة التقارير بتجمع كل البيانات وتعرضها بشكل مبسط. لا تحتاج أي إدخال — بس افتح الصفحة وهتلاقي كل الأرقام.
+      </p>
+
+      <div class="guide-card">
+        <h3>📈 ما ستجده في التقارير</h3>
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <div style="padding:14px;background:var(--bg);border-radius:var(--radius-sm)">
+            <div style="font-size:13px;font-weight:700;color:var(--primary);margin-bottom:4px">💰 الملخص المالي العام</div>
+            <div style="font-size:12px;color:var(--text-muted)">إجمالي الإيرادات — إجمالي المصاريف — صافي الربح — عدد التشغيلات</div>
+          </div>
+          <div style="padding:14px;background:var(--bg);border-radius:var(--radius-sm)">
+            <div style="font-size:13px;font-weight:700;color:var(--primary);margin-bottom:4px">📍 ملخص التشغيلات بالوجهة</div>
+            <div style="font-size:12px;color:var(--text-muted)">كل وجهة وعدد الرحلات ليها وإجمالي إيراداتها — مرتبة من الأعلى إيراداً</div>
+          </div>
+          <div style="padding:14px;background:var(--bg);border-radius:var(--radius-sm)">
+            <div style="font-size:13px;font-weight:700;color:var(--primary);margin-bottom:4px">💸 ملخص المصاريف بالنوع</div>
+            <div style="font-size:12px;color:var(--text-muted)">توزيع المصاريف على ثابت / متغير / أخرى مع الإجماليات</div>
+          </div>
+          <div style="padding:14px;background:var(--bg);border-radius:var(--radius-sm)">
+            <div style="font-size:13px;font-weight:700;color:var(--primary);margin-bottom:4px">🚌 أداء كل عربية</div>
+            <div style="font-size:12px;color:var(--text-muted)">عدد رحلات كل عربية — إيراداتها — مصاريفها — صافي ربحها</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="tip success">
+        <span class="tip-icon">📤</span>
+        <div class="tip-body">
+          <strong>تصدير البيانات</strong>
+          <span>اضغط زرار "تصدير" في الشريط العلوي لتحميل البيانات كملف JSON — مفيد للنسخ الاحتياطي.</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- TIPS -->
+    <section class="guide-section" id="tips">
+      <div class="section-header">
+        <div class="section-icon teal">💡</div>
+        <div>
+          <div class="section-title">نصائح وتنبيهات مهمة</div>
+          <div class="section-subtitle">اعرفها قبل ما تبدأ</div>
+        </div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="tip success">
+          <span class="tip-icon">✅</span>
+          <div class="tip-body"><strong>اضغط تحديث لو البيانات مش ظاهرة</strong><span>لو دخلت صفحة وما لقيتش البيانات، اضغط زرار "🔄 تحديث" في الشريط العلوي لإعادة تحميل البيانات من Sheets.</span></div>
+        </div>
+        <div class="tip warning">
+          <span class="tip-icon">⚠️</span>
+          <div class="tip-body"><strong>الحذف نهائي</strong><span>لا توجد خاصية تراجع (Undo). لو حذفت عربية أو تشغيلة بالغلط، هتحتاج تضيفها من أول.</span></div>
+        </div>
+        <div class="tip info">
+          <span class="tip-icon">🌐</span>
+          <div class="tip-body"><strong>محتاج إنترنت</strong><span>النظام محتاج اتصال بالإنترنت عشان يتواصل مع Google Sheets. بدون إنترنت مش هتقدر تضيف أو تعدل بيانات.</span></div>
+        </div>
+        <div class="tip success">
+          <span class="tip-icon">💾</span>
+          <div class="tip-body"><strong>البيانات بتتحفظ تلقائياً</strong><span>مفيش حاجة اسمها "حفظ الكل" — كل إضافة أو تعديل بيتحفظ فوراً في الشيت.</span></div>
+        </div>
+        <div class="tip danger">
+          <span class="tip-icon">🔒</span>
+          <div class="tip-body"><strong>لا تشارك الـ URL مع أشخاص غير موثوقين</strong><span>أي حد يعرف رابط الـ Apps Script يقدر يشوف ويعدل البيانات. خليه سري.</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- FAQ -->
+    <section class="guide-section" id="faq">
+      <div class="section-header">
+        <div class="section-icon blue">❓</div>
+        <div>
+          <div class="section-title">أسئلة شائعة</div>
+          <div class="section-subtitle">إجابات للأسئلة الأكثر تكراراً</div>
+        </div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="guide-card" style="padding:18px">
+          <h3 style="margin-bottom:8px">❓ ليه البيانات مش بتظهر؟</h3>
+          <p style="font-size:13px;color:var(--text-muted);line-height:1.7">أولاً تأكد من الاتصال بالإنترنت. ثانياً اضغط "تحديث". لو المشكلة فضلت، ممكن يكون في مشكلة في الـ Apps Script URL — تأكد إنه صح في كود النظام.</p>
+        </div>
+        <div class="guide-card" style="padding:18px">
+          <h3 style="margin-bottom:8px">❓ ينفع يشتغل من موبايل؟</h3>
+          <p style="font-size:13px;color:var(--text-muted);line-height:1.7">آه، النظام Responsive وبيشتغل على الموبايل. بس تجربة الكمبيوتر أحسن بكتير خصوصاً في إدخال البيانات.</p>
+        </div>
+        <div class="guide-card" style="padding:18px">
+          <h3 style="margin-bottom:8px">❓ إزاي أشوف البيانات في Excel؟</h3>
+          <p style="font-size:13px;color:var(--text-muted);line-height:1.7">البيانات موجودة في Google Sheets — افتحه من حسابك على Google. من هناك تقدر تنزله كـ Excel (.xlsx) من قايمة File → Download.</p>
+        </div>
+        <div class="guide-card" style="padding:18px">
+          <h3 style="margin-bottom:8px">❓ ينفع أكتر من شخص يستخدم النظام في نفس الوقت؟</h3>
+          <p style="font-size:13px;color:var(--text-muted);line-height:1.7">آه، ممكن. بس لو شخصين عدّلوا نفس البيانات في نفس اللحظة ممكن يحصل تعارض. الأحسن إن واحد بس يكون مسؤول الإدخال.</p>
+        </div>
+        <div class="guide-card" style="padding:18px">
+          <h3 style="margin-bottom:8px">❓ إيه الكود اللي بيظهر قدام كل سجل؟</h3>
+          <p style="font-size:13px;color:var(--text-muted);line-height:1.7">ده ID تلقائي بيتولد عند الإضافة (مثلاً VH123456 للعربيات، OP789012 للتشغيلات). بتستخدمه لما تربط المصاريف بالتشغيلات.</p>
+        </div>
+        <div class="guide-card" style="padding:18px">
+          <h3 style="margin-bottom:8px">❓ إزاي أعمل نسخة احتياطية؟</h3>
+          <p style="font-size:13px;color:var(--text-muted);line-height:1.7">اضغط زرار "📤 تصدير" في الشريط العلوي — هيتنزل ملف JSON بكل البيانات. احتفظ بيه في مكان آمن. ينصح تعمله شهرياً.</p>
+        </div>
+      </div>
+    </section>
+
+    <div style="text-align:center;padding:40px 0 20px;color:var(--text-muted);font-size:13px;border-top:1px solid var(--border)">
+      🌊 Oceanus Tours & Travel — دليل الاستخدام v1.0
+    </div>
+
+  </main>
+</div>
+
+<script>
+function setActive(el) {
+  document.querySelectorAll('.toc-item').forEach(i => i.classList.remove('active'));
+  el.classList.add('active');
+}
+
+// Auto highlight active section on scroll
+const sections = document.querySelectorAll('.guide-section');
+const tocItems = document.querySelectorAll('.toc-item');
+
+window.addEventListener('scroll', () => {
+  let current = '';
+  sections.forEach(s => {
+    if (window.scrollY >= s.offsetTop - 100) current = s.id;
+  });
+  tocItems.forEach(item => {
+    item.classList.remove('active');
+    if (item.getAttribute('href') === '#' + current) item.classList.add('active');
+  });
+});
+</script>
+</body>
+</html>
