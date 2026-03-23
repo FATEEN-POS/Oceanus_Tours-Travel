@@ -1,0 +1,813 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Oceanus - نظام إدارة التشغيلات</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #1a3a5c;
+      --primary-light: #234e7d;
+      --accent-blue: #2d6ea8;
+      --accent-orange: #e8890c;
+      --accent-green: #2ecc71;
+      --accent-red: #e74c3c;
+      --accent-teal: #1abc9c;
+      --bg: #eef2f7;
+      --bg-card: #ffffff;
+      --text: #1a2533;
+      --text-muted: #7f8c9a;
+      --border: #dde3ec;
+      --shadow: 0 2px 12px rgba(26,58,92,0.08);
+      --shadow-hover: 0 8px 24px rgba(26,58,92,0.15);
+      --radius: 14px;
+      --radius-sm: 8px;
+      --nav-width: 220px;
+      --topbar-height: 60px;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Cairo', sans-serif; background: var(--bg); color: var(--text); direction: rtl; min-height: 100vh; }
+
+    /* TOPBAR */
+    .topbar { position: fixed; top: 0; left: 0; right: 0; height: var(--topbar-height); background: var(--bg-card); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 20px; z-index: 100; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+    .topbar-logo { display: flex; align-items: center; gap: 10px; }
+    .topbar-logo .logo-box { width: 36px; height: 36px; background: var(--primary); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; font-weight: 900; font-size: 16px; }
+    .topbar-logo .logo-text span { font-size: 20px; font-weight: 900; color: var(--primary); letter-spacing: -0.5px; display: block; line-height: 1.1; }
+    .topbar-logo .logo-text small { font-size: 10px; color: var(--text-muted); font-weight: 400; }
+    .topbar-actions { display: flex; align-items: center; gap: 10px; }
+    .btn-topbar { display: flex; align-items: center; gap: 6px; padding: 7px 14px; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--bg); color: var(--text); font-family: 'Cairo', sans-serif; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+    .btn-topbar:hover { background: var(--primary); color: white; border-color: var(--primary); }
+
+    /* SIDEBAR */
+    .sidebar { position: fixed; top: var(--topbar-height); right: 0; width: var(--nav-width); height: calc(100vh - var(--topbar-height)); background: var(--primary); padding: 20px 0; overflow-y: auto; z-index: 90; }
+    .nav-item { display: flex; align-items: center; gap: 12px; padding: 13px 20px; color: rgba(255,255,255,0.7); cursor: pointer; transition: all 0.2s; font-size: 14px; font-weight: 600; border-right: 3px solid transparent; }
+    .nav-item:hover { background: rgba(255,255,255,0.08); color: white; }
+    .nav-item.active { background: rgba(255,255,255,0.12); color: white; border-right-color: var(--accent-orange); }
+    .nav-icon { font-size: 18px; width: 24px; text-align: center; }
+
+    /* MAIN */
+    .main { margin-right: var(--nav-width); margin-top: var(--topbar-height); padding: 24px; min-height: calc(100vh - var(--topbar-height)); }
+
+    /* PAGE HEADER */
+    .page-header { margin-bottom: 24px; }
+    .page-header h1 { font-size: 22px; font-weight: 900; color: var(--primary); }
+    .page-header p { font-size: 13px; color: var(--text-muted); margin-top: 2px; }
+
+    /* CARD */
+    .card { background: var(--bg-card); border-radius: var(--radius); border: 1px solid var(--border); box-shadow: var(--shadow); padding: 20px; }
+    .card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+    .card-title { font-size: 15px; font-weight: 700; color: var(--primary); display: flex; align-items: center; gap: 8px; }
+
+    /* STATS */
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
+    .stat-card { background: var(--bg-card); border-radius: var(--radius); border: 1px solid var(--border); padding: 20px; display: flex; align-items: center; gap: 16px; box-shadow: var(--shadow); transition: box-shadow 0.2s; }
+    .stat-card:hover { box-shadow: var(--shadow-hover); }
+    .stat-icon { width: 52px; height: 52px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; }
+    .stat-icon.blue { background: #e8f0fa; }
+    .stat-icon.orange { background: #fef3e2; }
+    .stat-icon.green { background: #e8f8f1; }
+    .stat-icon.red { background: #fde8e8; }
+    .stat-info h3 { font-size: 24px; font-weight: 900; color: var(--primary); line-height: 1; }
+    .stat-info p { font-size: 12px; color: var(--text-muted); margin-top: 4px; font-weight: 600; }
+
+    /* TABLE */
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th { background: var(--bg); color: var(--text-muted); font-weight: 700; padding: 10px 14px; text-align: right; border-bottom: 1px solid var(--border); white-space: nowrap; }
+    td { padding: 12px 14px; border-bottom: 1px solid var(--border); color: var(--text); }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--bg); }
+
+    /* BUTTONS */
+    .btn { display: inline-flex; align-items: center; gap: 6px; padding: 9px 18px; border-radius: var(--radius-sm); border: none; font-family: 'Cairo', sans-serif; font-size: 13px; font-weight: 700; cursor: pointer; transition: all 0.2s; }
+    .btn-primary { background: var(--primary); color: white; }
+    .btn-primary:hover { background: var(--primary-light); }
+    .btn-success { background: var(--accent-green); color: white; }
+    .btn-danger { background: var(--accent-red); color: white; }
+    .btn-warning { background: var(--accent-orange); color: white; }
+    .btn-sm { padding: 5px 10px; font-size: 12px; }
+    .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
+    .btn-outline:hover { border-color: var(--primary); color: var(--primary); }
+
+    /* BADGE */
+    .badge { display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; }
+    .badge-green { background: #e8f8f1; color: #27ae60; }
+    .badge-red { background: #fde8e8; color: #e74c3c; }
+    .badge-orange { background: #fef3e2; color: #e67e22; }
+    .badge-blue { background: #e8f0fa; color: #2d6ea8; }
+
+    /* MODAL */
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 200; display: flex; align-items: center; justify-content: center; opacity: 0; visibility: hidden; transition: all 0.2s; }
+    .modal-overlay.active { opacity: 1; visibility: visible; }
+    .modal { background: var(--bg-card); border-radius: var(--radius); width: 90%; max-width: 520px; max-height: 85vh; overflow-y: auto; padding: 24px; transform: translateY(20px); transition: transform 0.2s; }
+    .modal-overlay.active .modal { transform: translateY(0); }
+    .modal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+    .modal-title { font-size: 17px; font-weight: 800; color: var(--primary); }
+    .modal-close { background: none; border: none; font-size: 20px; cursor: pointer; color: var(--text-muted); line-height: 1; }
+
+    /* FORM */
+    .form-group { margin-bottom: 16px; }
+    .form-label { display: block; font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 6px; }
+    .form-control { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); font-family: 'Cairo', sans-serif; font-size: 13px; color: var(--text); background: var(--bg); transition: border-color 0.2s; direction: rtl; }
+    .form-control:focus { outline: none; border-color: var(--accent-blue); background: white; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+    /* LOADING */
+    .loading { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 30px; color: var(--text-muted); font-size: 13px; }
+    .spinner { width: 20px; height: 20px; border: 2px solid var(--border); border-top-color: var(--accent-blue); border-radius: 50%; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* EMPTY */
+    .empty-state { text-align: center; padding: 40px 20px; color: var(--text-muted); }
+    .empty-state .empty-icon { font-size: 40px; margin-bottom: 12px; }
+    .empty-state p { font-size: 14px; }
+
+    /* TOAST */
+    .toast-container { position: fixed; bottom: 24px; left: 24px; z-index: 300; display: flex; flex-direction: column; gap: 8px; }
+    .toast { background: var(--primary); color: white; padding: 12px 18px; border-radius: var(--radius-sm); font-size: 13px; font-weight: 600; box-shadow: var(--shadow-hover); animation: slideIn 0.3s ease; display: flex; align-items: center; gap: 8px; }
+    .toast.success { background: var(--accent-green); }
+    .toast.error { background: var(--accent-red); }
+    @keyframes slideIn { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+    /* HOME */
+    .home-banner { background: var(--primary); border-radius: var(--radius); padding: 28px 32px; margin-bottom: 24px; position: relative; overflow: hidden; }
+    .home-banner::before { content: 'Oceanus'; position: absolute; left: -20px; top: 50%; transform: translateY(-50%); font-size: 80px; font-weight: 900; color: rgba(255,255,255,0.05); letter-spacing: -3px; pointer-events: none; }
+    .home-banner h2 { color: white; font-size: 22px; font-weight: 900; }
+    .home-banner p { color: rgba(255,255,255,0.7); font-size: 13px; margin-top: 4px; }
+    .home-banner .date { color: rgba(255,255,255,0.5); font-size: 12px; margin-bottom: 6px; }
+    .quick-links { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+    .quick-card { background: var(--bg-card); border-radius: var(--radius); border: 1px solid var(--border); padding: 24px 16px; text-align: center; cursor: pointer; transition: all 0.2s; box-shadow: var(--shadow); border-bottom: 3px solid transparent; }
+    .quick-card:hover { box-shadow: var(--shadow-hover); transform: translateY(-2px); }
+    .quick-card.vehicles { border-bottom-color: var(--accent-blue); }
+    .quick-card.operations { border-bottom-color: var(--accent-orange); }
+    .quick-card.expenses { border-bottom-color: var(--accent-green); }
+    .quick-card.reports { border-bottom-color: #f39c12; }
+    .quick-card .q-icon { font-size: 32px; margin-bottom: 10px; }
+    .quick-card h3 { font-size: 15px; font-weight: 800; color: var(--primary); }
+    .quick-card p { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+    .bottom-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+    /* RESPONSIVE */
+    @media (max-width: 768px) {
+      .sidebar { display: none; }
+      .main { margin-right: 0; padding: 16px; }
+      .quick-links { grid-template-columns: repeat(2, 1fr); }
+      .bottom-grid { grid-template-columns: 1fr; }
+      .form-row { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div class="topbar-logo">
+      <div class="logo-box">O</div>
+      <div class="logo-text">
+        <span>Oceanus</span>
+        <small>TOURS & TRAVEL</small>
+      </div>
+    </div>
+    <div class="topbar-actions">
+      <button class="btn-topbar" onclick="App.refresh()">🔄 تحديث</button>
+      <button class="btn-topbar" onclick="App.exportData()">📤 تصدير</button>
+    </div>
+  </div>
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="nav-item active" onclick="App.navigate('home')" id="nav-home"><span class="nav-icon">🏠</span> الرئيسية</div>
+    <div class="nav-item" onclick="App.navigate('vehicles')" id="nav-vehicles"><span class="nav-icon">🚌</span> العربيات</div>
+    <div class="nav-item" onclick="App.navigate('operations')" id="nav-operations"><span class="nav-icon">🚀</span> التشغيلات</div>
+    <div class="nav-item" onclick="App.navigate('expenses')" id="nav-expenses"><span class="nav-icon">💸</span> المصاريف</div>
+    <div class="nav-item" onclick="App.navigate('reports')" id="nav-reports"><span class="nav-icon">📊</span> التقارير</div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main" id="main-content"></div>
+
+  <!-- TOAST -->
+  <div class="toast-container" id="toast-container"></div>
+
+<script>
+// ===== CONFIG =====
+const CONFIG = {
+  SPREADSHEET_ID: "1YQBzNjq5OjiT6wIheQaz-7ZMTDyNSq-I0EhqhS7wKA0",
+  SERVICE_ACCOUNT: {
+    client_email: "oceanus-sheets@oceanus-491023.iam.gserviceaccount.com",
+    token_uri: "https://oauth2.googleapis.com/token",
+    private_key: "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQDA8azUmHr7nUUy\noXY4VxugDywrnTxwQQbdQKVfioz8RzD1wbpUcmlWIna6Lr35fgQ2+nG3POwcDQdV\nEA3orrVToEqAhbDre5xgwqgxEU1HkxBCjAgV3Il967Qh2CZ0zoeSzIm2rOXsk101\nfjrOLLJcR4v4A+o01VkwoTNeh01gfRE1kEQKyi5EuUqOioSlVRAHlBCvbgEqoWdy\nbB89A+GE7cwHAINRnSJaCZ3XNpdYqIWVo4pWWLTUy5Ho+wO8Z1WN2yQeaVVhphxN\nRml/noeYnESrptj/MTpVgyurJsrP0TL/6JHYtCtul3cX3a37xe92WRIaAkQs6h2/\n+41CwuVRAgMBAAECggEAQuks1hdBAxQhxLKwxE4VEvdgCon/RTCP2FfMYeszBGQN\n6xQxcYqx1ACkquF92VFl1ckZeYHDoeC0y7+DC0/XKzaZz6NNXQSjkPzAhi+pXKp4\nB5P3U9mExungMKJ8h6J96p9LHNIt9FKQjvYFH63pds4LEMoOxR69zPsCTQRgBZcO\ng6ZE1u7DqG8hBDs0O5LJSRp4ZL0saH1Zg3B0ZUzsWQqh08xIQEzN7hNveDbGFSG/\nvz+uMvMa1Ug0mCRnA1Zs6XAuvN4ZPfx22U2xdYGTS0Dm1cLyx/aEQBhy2RBzfrYY\n/qDKnJyESS6+ZZjiRLSHG9wJIl/Yc9AQdSIoUTM+zwKBgQD6zy6tiZx9ptH9zwUM\nw4ZPLwkucuQVVvHO/A2NtjGpMzuN/NriUSGsqQJeFuFffAD/53pg0/RpkSilai9/\nskRsk8zYiAKGUKq51H/69yNCyeSYX/vCYSiEnmL6nWZ+JnFB7k7eRmZkcBw396qh\nOGz8jo657zfnHTm/740GIJ8vfwKBgQDE7+pr9tnkJZipWaGiUM1ATEmPETSw+4X8\nmciO0JclFiCeX/Q8eIPnsdXPskubVZoudVuaOE+3oqWZsjhlelvylK4Gxp5WrUzE\noi+ze5bw1k6gAT0uNHRJ74FAz87Eat1ioPPiEHU5gCDhk0poM8qgR8vo/81VYKXf\nAMwumF1TLwKBgQD0toGMwN/3mXT6d6stsPiy+emzcFYqnBKDKlrvEf2SYXKSL0xB\n1XdNx/mPZDOxvoQbK/ez0hp/hipqexitN3qblfogq1QLSVnKxxO4ArpcyDBKnBxA\npBusif15GWqPW2LWOXaqWXY+OUTPNs89TpjIMy//KvEYhuN56nlmqR2ocQKBgHUt\n18tDxyRUJoDlnyIod+hBPCePck24a2IA0u//N1/OybvSlk2A2+N50iHSEeCsT6BD\nHi0mQnCeq3BHNf1Tj/BH/UB03/PtC9eYNU/TQt2sdn4IHrImbecsRjkdLQd8Gpw7\n7sFdT5LWJTpzXHuiDXfPIIpT4oZhinClVdiHukfrAoGANVvQMeZ7ryK70NqpSNf8\nh/D0D+g4/TmD0xj9Pi6+EIlXO3sJjlu5157zU+ME3Gf610edGvZx5nnzOtkgtkEX\nzUPf7R3vb/Uj/AtwzhHiunf6YioQjV1RUOsikepchHKZqYjMLhO9bsRsm1ZHKcez\n01bjPwpoDqPuWSjqSYJvru8=\n-----END PRIVATE KEY-----\n"
+  },
+  SHEETS: {
+    VEHICLES: "العربيات",
+    OPERATIONS: "التشغيلات",
+    EXPENSES: "المصاريف"
+  }
+};
+
+// ===== SHEETS API =====
+const SheetsAPI = (() => {
+  let accessToken = null;
+  let tokenExpiry = 0;
+
+  async function getAccessToken() {
+    if (accessToken && Date.now() < tokenExpiry) return accessToken;
+    const header = { alg: "RS256", typ: "JWT" };
+    const now = Math.floor(Date.now() / 1000);
+    const claim = { iss: CONFIG.SERVICE_ACCOUNT.client_email, scope: "https://www.googleapis.com/auth/spreadsheets", aud: CONFIG.SERVICE_ACCOUNT.token_uri, exp: now + 3600, iat: now };
+    const b64 = s => btoa(JSON.stringify(s)).replace(/=/g,"").replace(/\+/g,"-").replace(/\//g,"_");
+    const unsigned = `${b64(header)}.${b64(claim)}`;
+    const keyData = CONFIG.SERVICE_ACCOUNT.private_key.replace("-----BEGIN PRIVATE KEY-----\n","").replace("\n-----END PRIVATE KEY-----\n","").replace(/\n/g,"");
+    const binaryKey = Uint8Array.from(atob(keyData), c => c.charCodeAt(0));
+    const cryptoKey = await crypto.subtle.importKey("pkcs8", binaryKey.buffer, { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" }, false, ["sign"]);
+    const signature = await crypto.subtle.sign("RSASSA-PKCS1-v1_5", cryptoKey, new TextEncoder().encode(unsigned));
+    const sigB64 = btoa(String.fromCharCode(...new Uint8Array(signature))).replace(/=/g,"").replace(/\+/g,"-").replace(/\//g,"_");
+    const jwt = `${unsigned}.${sigB64}`;
+    const resp = await fetch(CONFIG.SERVICE_ACCOUNT.token_uri, { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: `grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Ajwt-bearer&assertion=${jwt}` });
+    const data = await resp.json();
+    accessToken = data.access_token;
+    tokenExpiry = Date.now() + (data.expires_in - 60) * 1000;
+    return accessToken;
+  }
+
+  async function getSheet(sheetName) {
+    const token = await getAccessToken();
+    const url = `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SPREADSHEET_ID}/values/${encodeURIComponent(sheetName)}`;
+    const resp = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+    const data = await resp.json();
+    return data.values || [];
+  }
+
+  async function appendRow(sheetName, values) {
+    const token = await getAccessToken();
+    const url = `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SPREADSHEET_ID}/values/${encodeURIComponent(sheetName)}:append?valueInputOption=USER_ENTERED`;
+    const resp = await fetch(url, { method: "POST", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }, body: JSON.stringify({ values: [values] }) });
+    return await resp.json();
+  }
+
+  async function updateRow(sheetName, rowIndex, values) {
+    const token = await getAccessToken();
+    const range = `${sheetName}!A${rowIndex}`;
+    const url = `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SPREADSHEET_ID}/values/${encodeURIComponent(range)}?valueInputOption=USER_ENTERED`;
+    const resp = await fetch(url, { method: "PUT", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }, body: JSON.stringify({ values: [values] }) });
+    return await resp.json();
+  }
+
+  async function deleteRow(sheetName, rowIndex) {
+    const token = await getAccessToken();
+    const metaResp = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SPREADSHEET_ID}`, { headers: { Authorization: `Bearer ${token}` } });
+    const meta = await metaResp.json();
+    const sheet = meta.sheets.find(s => s.properties.title === sheetName);
+    const sheetId = sheet.properties.sheetId;
+    const url = `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SPREADSHEET_ID}:batchUpdate`;
+    const resp = await fetch(url, { method: "POST", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }, body: JSON.stringify({ requests: [{ deleteDimension: { range: { sheetId, dimension: "ROWS", startIndex: rowIndex - 1, endIndex: rowIndex } } }] }) });
+    return await resp.json();
+  }
+
+  async function initSheets() {
+    const token = await getAccessToken();
+    const metaResp = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SPREADSHEET_ID}`, { headers: { Authorization: `Bearer ${token}` } });
+    const meta = await metaResp.json();
+    const existing = meta.sheets.map(s => s.properties.title);
+    const required = Object.values(CONFIG.SHEETS);
+    const toCreate = required.filter(s => !existing.includes(s));
+    if (toCreate.length > 0) {
+      await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SPREADSHEET_ID}:batchUpdate`, { method: "POST", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }, body: JSON.stringify({ requests: toCreate.map(title => ({ addSheet: { properties: { title } } })) }) });
+      const headers = {
+        [CONFIG.SHEETS.VEHICLES]: ["ID","النوع","الماركة","الموديل","رقم اللوحة","السنة","الحالة","ملاحظات"],
+        [CONFIG.SHEETS.OPERATIONS]: ["ID","التاريخ","العربية","المورد","الوجهة","الإيراد","الحالة","ملاحظات"],
+        [CONFIG.SHEETS.EXPENSES]: ["ID","التشغيلة","النوع","البند","المبلغ","التاريخ","ملاحظات"]
+      };
+      for (const sheet of toCreate) await appendRow(sheet, headers[sheet]);
+    }
+  }
+
+  return { getSheet, appendRow, updateRow, deleteRow, initSheets };
+})();
+
+// ===== UTILS =====
+function showToast(msg, type = 'default') {
+  const container = document.getElementById('toast-container');
+  const toast = document.createElement('div');
+  toast.className = `toast ${type}`;
+  toast.textContent = msg;
+  container.appendChild(toast);
+  setTimeout(() => toast.remove(), 3000);
+}
+function genId(prefix) { return prefix + Date.now().toString().slice(-6); }
+
+// ===== VEHICLES MODULE =====
+const VehiclesModule = (() => {
+  let data = [];
+  async function load() {
+    const rows = await SheetsAPI.getSheet(CONFIG.SHEETS.VEHICLES);
+    data = rows.slice(1).map((r,i) => ({ rowIndex:i+2, id:r[0]||'', type:r[1]||'', brand:r[2]||'', model:r[3]||'', plate:r[4]||'', year:r[5]||'', status:r[6]||'نشطة', notes:r[7]||'' }));
+    return data;
+  }
+  async function add(d) { await SheetsAPI.appendRow(CONFIG.SHEETS.VEHICLES, [genId('VH'),d.type,d.brand,d.model,d.plate,d.year,d.status||'نشطة',d.notes||'']); }
+  async function update(idx,d) { await SheetsAPI.updateRow(CONFIG.SHEETS.VEHICLES, idx, [d.id,d.type,d.brand,d.model,d.plate,d.year,d.status,d.notes||'']); }
+  async function remove(idx) { await SheetsAPI.deleteRow(CONFIG.SHEETS.VEHICLES, idx); }
+
+  function renderPage() {
+    return `
+      <div class="page-header"><h1>🚌 إدارة العربيات</h1><p>إدارة أسطول العربيات</p></div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">🚌 الأسطول</span><button class="btn btn-primary" onclick="VehiclesModule.openAdd()">+ إضافة عربية</button></div>
+        <div id="v-loading" class="loading"><div class="spinner"></div> جاري التحميل...</div>
+        <div id="v-table" style="display:none">
+          <div class="table-wrap"><table><thead><tr><th>الكود</th><th>النوع</th><th>الماركة</th><th>الموديل</th><th>رقم اللوحة</th><th>السنة</th><th>الحالة</th><th>إجراءات</th></tr></thead><tbody id="v-tbody"></tbody></table></div>
+          <div id="v-empty" class="empty-state" style="display:none"><div class="empty-icon">🚌</div><p>لا توجد عربيات بعد</p></div>
+        </div>
+      </div>
+      <div class="modal-overlay" id="v-modal">
+        <div class="modal">
+          <div class="modal-header"><span class="modal-title" id="v-modal-title">إضافة عربية</span><button class="modal-close" onclick="VehiclesModule.closeModal()">✕</button></div>
+          <div class="form-row">
+            <div class="form-group"><label class="form-label">النوع</label><select class="form-control" id="v-type"><option>ميكروباص</option><option>باص</option><option>سيارة</option><option>فان</option><option>أخرى</option></select></div>
+            <div class="form-group"><label class="form-label">الحالة</label><select class="form-control" id="v-status"><option>نشطة</option><option>في الصيانة</option><option>متوقفة</option></select></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label class="form-label">الماركة</label><input class="form-control" id="v-brand" placeholder="Toyota"></div>
+            <div class="form-group"><label class="form-label">الموديل</label><input class="form-control" id="v-model" placeholder="Coaster"></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label class="form-label">رقم اللوحة</label><input class="form-control" id="v-plate" placeholder="أ ب ج 1234"></div>
+            <div class="form-group"><label class="form-label">سنة الصنع</label><input class="form-control" id="v-year" type="number" placeholder="2020"></div>
+          </div>
+          <div class="form-group"><label class="form-label">ملاحظات</label><textarea class="form-control" id="v-notes" rows="2"></textarea></div>
+          <input type="hidden" id="v-row-index"><input type="hidden" id="v-id">
+          <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:8px">
+            <button class="btn btn-outline" onclick="VehiclesModule.closeModal()">إلغاء</button>
+            <button class="btn btn-primary" onclick="VehiclesModule.save()">💾 حفظ</button>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  async function renderData() {
+    document.getElementById('v-loading').style.display = 'none';
+    document.getElementById('v-table').style.display = 'block';
+    await load();
+    const tbody = document.getElementById('v-tbody');
+    if (data.length === 0) { document.getElementById('v-empty').style.display = 'block'; tbody.innerHTML = ''; return; }
+    document.getElementById('v-empty').style.display = 'none';
+    tbody.innerHTML = data.map(v => `<tr>
+      <td><code style="font-size:11px;color:var(--text-muted)">${v.id}</code></td>
+      <td>${v.type}</td><td>${v.brand}</td><td>${v.model}</td>
+      <td><strong>${v.plate}</strong></td><td>${v.year}</td>
+      <td><span class="badge ${v.status==='نشطة'?'badge-green':v.status==='في الصيانة'?'badge-orange':'badge-red'}">${v.status}</span></td>
+      <td><button class="btn btn-sm btn-outline" onclick="VehiclesModule.openEdit(${v.rowIndex})">✏️</button> <button class="btn btn-sm btn-danger" onclick="VehiclesModule.del(${v.rowIndex})">🗑️</button></td>
+    </tr>`).join('');
+  }
+
+  function openAdd() {
+    document.getElementById('v-modal-title').textContent = 'إضافة عربية';
+    ['v-brand','v-model','v-plate','v-year','v-notes'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('v-row-index').value = '';
+    document.getElementById('v-id').value = '';
+    document.getElementById('v-modal').classList.add('active');
+  }
+
+  function openEdit(idx) {
+    const v = data.find(x => x.rowIndex === idx); if (!v) return;
+    document.getElementById('v-modal-title').textContent = 'تعديل عربية';
+    document.getElementById('v-type').value = v.type;
+    document.getElementById('v-brand').value = v.brand;
+    document.getElementById('v-model').value = v.model;
+    document.getElementById('v-plate').value = v.plate;
+    document.getElementById('v-year').value = v.year;
+    document.getElementById('v-status').value = v.status;
+    document.getElementById('v-notes').value = v.notes;
+    document.getElementById('v-row-index').value = idx;
+    document.getElementById('v-id').value = v.id;
+    document.getElementById('v-modal').classList.add('active');
+  }
+
+  function closeModal() { document.getElementById('v-modal').classList.remove('active'); }
+
+  async function save() {
+    const d = { id: document.getElementById('v-id').value, type: document.getElementById('v-type').value, brand: document.getElementById('v-brand').value, model: document.getElementById('v-model').value, plate: document.getElementById('v-plate').value, year: document.getElementById('v-year').value, status: document.getElementById('v-status').value, notes: document.getElementById('v-notes').value };
+    if (!d.plate) { showToast('أدخل رقم اللوحة', 'error'); return; }
+    const idx = document.getElementById('v-row-index').value;
+    try {
+      if (idx) { await update(parseInt(idx), d); showToast('تم التعديل ✅', 'success'); }
+      else { await add(d); showToast('تمت الإضافة ✅', 'success'); }
+      closeModal(); renderData();
+    } catch(e) { showToast('حدث خطأ', 'error'); }
+  }
+
+  async function del(idx) {
+    if (!confirm('هل تريد حذف هذه العربية؟')) return;
+    try { await remove(idx); showToast('تم الحذف', 'success'); renderData(); } catch(e) { showToast('حدث خطأ', 'error'); }
+  }
+
+  return { renderPage, renderData, openAdd, openEdit, closeModal, save, del, getAll: () => data, load };
+})();
+
+// ===== OPERATIONS MODULE =====
+const OperationsModule = (() => {
+  let data = [];
+  async function load() {
+    const rows = await SheetsAPI.getSheet(CONFIG.SHEETS.OPERATIONS);
+    data = rows.slice(1).map((r,i) => ({ rowIndex:i+2, id:r[0]||'', date:r[1]||'', vehicle:r[2]||'', supplier:r[3]||'', destination:r[4]||'', revenue:parseFloat(r[5])||0, status:r[6]||'مكتملة', notes:r[7]||'' }));
+    return data;
+  }
+  async function add(d) { await SheetsAPI.appendRow(CONFIG.SHEETS.OPERATIONS, [genId('OP'),d.date,d.vehicle,d.supplier,d.destination,d.revenue,d.status||'مكتملة',d.notes||'']); }
+  async function update(idx,d) { await SheetsAPI.updateRow(CONFIG.SHEETS.OPERATIONS, idx, [d.id,d.date,d.vehicle,d.supplier,d.destination,d.revenue,d.status,d.notes||'']); }
+  async function remove(idx) { await SheetsAPI.deleteRow(CONFIG.SHEETS.OPERATIONS, idx); }
+
+  function renderPage() {
+    const vOpts = VehiclesModule.getAll().map(v => `<option value="${v.plate}">${v.plate} - ${v.brand} ${v.model}</option>`).join('');
+    return `
+      <div class="page-header"><h1>🚀 إدارة التشغيلات</h1><p>الرحلات والإيرادات</p></div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">🚀 التشغيلات</span><button class="btn btn-primary" onclick="OperationsModule.openAdd()">+ إضافة تشغيلة</button></div>
+        <div id="op-loading" class="loading"><div class="spinner"></div> جاري التحميل...</div>
+        <div id="op-table" style="display:none">
+          <div class="table-wrap"><table><thead><tr><th>الكود</th><th>التاريخ</th><th>العربية</th><th>المورد</th><th>الوجهة</th><th>الإيراد</th><th>الحالة</th><th>إجراءات</th></tr></thead><tbody id="op-tbody"></tbody></table></div>
+          <div id="op-empty" class="empty-state" style="display:none"><div class="empty-icon">🚀</div><p>لا توجد تشغيلات بعد</p></div>
+        </div>
+      </div>
+      <div class="modal-overlay" id="op-modal">
+        <div class="modal">
+          <div class="modal-header"><span class="modal-title" id="op-modal-title">إضافة تشغيلة</span><button class="modal-close" onclick="OperationsModule.closeModal()">✕</button></div>
+          <div class="form-row">
+            <div class="form-group"><label class="form-label">التاريخ</label><input class="form-control" id="op-date" type="date"></div>
+            <div class="form-group"><label class="form-label">الحالة</label><select class="form-control" id="op-status"><option>مكتملة</option><option>جارية</option><option>ملغية</option></select></div>
+          </div>
+          <div class="form-group"><label class="form-label">العربية</label><select class="form-control" id="op-vehicle"><option value="">-- اختر عربية --</option>${vOpts}</select></div>
+          <div class="form-row">
+            <div class="form-group"><label class="form-label">المورد</label><input class="form-control" id="op-supplier" placeholder="اسم المورد"></div>
+            <div class="form-group"><label class="form-label">الوجهة</label><input class="form-control" id="op-destination" placeholder="مثال: الأقصر"></div>
+          </div>
+          <div class="form-group"><label class="form-label">الإيراد (جنيه)</label><input class="form-control" id="op-revenue" type="number" placeholder="0"></div>
+          <div class="form-group"><label class="form-label">ملاحظات</label><textarea class="form-control" id="op-notes" rows="2"></textarea></div>
+          <input type="hidden" id="op-row-index"><input type="hidden" id="op-id">
+          <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:8px">
+            <button class="btn btn-outline" onclick="OperationsModule.closeModal()">إلغاء</button>
+            <button class="btn btn-primary" onclick="OperationsModule.save()">💾 حفظ</button>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  async function renderData() {
+    document.getElementById('op-loading').style.display = 'none';
+    document.getElementById('op-table').style.display = 'block';
+    await load();
+    const tbody = document.getElementById('op-tbody');
+    if (data.length === 0) { document.getElementById('op-empty').style.display = 'block'; tbody.innerHTML = ''; return; }
+    document.getElementById('op-empty').style.display = 'none';
+    tbody.innerHTML = data.map(op => `<tr>
+      <td><code style="font-size:11px;color:var(--text-muted)">${op.id}</code></td>
+      <td>${op.date}</td><td>${op.vehicle}</td><td>${op.supplier}</td><td>${op.destination}</td>
+      <td><strong style="color:var(--accent-green)">${op.revenue.toLocaleString()} ج</strong></td>
+      <td><span class="badge ${op.status==='مكتملة'?'badge-green':op.status==='جارية'?'badge-blue':'badge-red'}">${op.status}</span></td>
+      <td><button class="btn btn-sm btn-outline" onclick="OperationsModule.openEdit(${op.rowIndex})">✏️</button> <button class="btn btn-sm btn-danger" onclick="OperationsModule.del(${op.rowIndex})">🗑️</button></td>
+    </tr>`).join('');
+  }
+
+  function openAdd() {
+    document.getElementById('op-modal-title').textContent = 'إضافة تشغيلة';
+    document.getElementById('op-date').value = new Date().toISOString().split('T')[0];
+    ['op-vehicle','op-supplier','op-destination','op-revenue','op-notes'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('op-status').value = 'مكتملة';
+    document.getElementById('op-row-index').value = '';
+    document.getElementById('op-id').value = '';
+    document.getElementById('op-modal').classList.add('active');
+  }
+
+  function openEdit(idx) {
+    const op = data.find(x => x.rowIndex === idx); if (!op) return;
+    document.getElementById('op-modal-title').textContent = 'تعديل تشغيلة';
+    document.getElementById('op-date').value = op.date;
+    document.getElementById('op-vehicle').value = op.vehicle;
+    document.getElementById('op-supplier').value = op.supplier;
+    document.getElementById('op-destination').value = op.destination;
+    document.getElementById('op-revenue').value = op.revenue;
+    document.getElementById('op-status').value = op.status;
+    document.getElementById('op-notes').value = op.notes;
+    document.getElementById('op-row-index').value = idx;
+    document.getElementById('op-id').value = op.id;
+    document.getElementById('op-modal').classList.add('active');
+  }
+
+  function closeModal() { document.getElementById('op-modal').classList.remove('active'); }
+
+  async function save() {
+    const d = { id: document.getElementById('op-id').value, date: document.getElementById('op-date').value, vehicle: document.getElementById('op-vehicle').value, supplier: document.getElementById('op-supplier').value, destination: document.getElementById('op-destination').value, revenue: document.getElementById('op-revenue').value, status: document.getElementById('op-status').value, notes: document.getElementById('op-notes').value };
+    if (!d.date || !d.destination) { showToast('أدخل التاريخ والوجهة', 'error'); return; }
+    const idx = document.getElementById('op-row-index').value;
+    try {
+      if (idx) { await update(parseInt(idx), d); showToast('تم التعديل ✅', 'success'); }
+      else { await add(d); showToast('تمت الإضافة ✅', 'success'); }
+      closeModal(); renderData();
+    } catch(e) { showToast('حدث خطأ', 'error'); }
+  }
+
+  async function del(idx) {
+    if (!confirm('هل تريد حذف هذه التشغيلة؟')) return;
+    try { await remove(idx); showToast('تم الحذف', 'success'); renderData(); } catch(e) { showToast('حدث خطأ', 'error'); }
+  }
+
+  return { renderPage, renderData, openAdd, openEdit, closeModal, save, del, getAll: () => data, load };
+})();
+
+// ===== EXPENSES MODULE =====
+const ExpensesModule = (() => {
+  let data = [];
+  async function load() {
+    const rows = await SheetsAPI.getSheet(CONFIG.SHEETS.EXPENSES);
+    data = rows.slice(1).map((r,i) => ({ rowIndex:i+2, id:r[0]||'', operation:r[1]||'', type:r[2]||'', item:r[3]||'', amount:parseFloat(r[4])||0, date:r[5]||'', notes:r[6]||'' }));
+    return data;
+  }
+  async function add(d) { await SheetsAPI.appendRow(CONFIG.SHEETS.EXPENSES, [genId('EX'),d.operation,d.type,d.item,d.amount,d.date,d.notes||'']); }
+  async function update(idx,d) { await SheetsAPI.updateRow(CONFIG.SHEETS.EXPENSES, idx, [d.id,d.operation,d.type,d.item,d.amount,d.date,d.notes||'']); }
+  async function remove(idx) { await SheetsAPI.deleteRow(CONFIG.SHEETS.EXPENSES, idx); }
+
+  function renderPage() {
+    const opOpts = OperationsModule.getAll().map(op => `<option value="${op.id}">${op.id} - ${op.destination} (${op.date})</option>`).join('');
+    return `
+      <div class="page-header"><h1>💸 إدارة المصاريف</h1><p>المصاريف الثابتة والمتغيرة والأخرى</p></div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">💸 المصاريف</span><button class="btn btn-primary" onclick="ExpensesModule.openAdd()">+ إضافة مصروف</button></div>
+        <div id="ex-loading" class="loading"><div class="spinner"></div> جاري التحميل...</div>
+        <div id="ex-table" style="display:none">
+          <div class="table-wrap"><table><thead><tr><th>الكود</th><th>التشغيلة</th><th>النوع</th><th>البند</th><th>المبلغ</th><th>التاريخ</th><th>إجراءات</th></tr></thead><tbody id="ex-tbody"></tbody></table></div>
+          <div id="ex-empty" class="empty-state" style="display:none"><div class="empty-icon">💸</div><p>لا توجد مصاريف بعد</p></div>
+        </div>
+      </div>
+      <div class="modal-overlay" id="ex-modal">
+        <div class="modal">
+          <div class="modal-header"><span class="modal-title" id="ex-modal-title">إضافة مصروف</span><button class="modal-close" onclick="ExpensesModule.closeModal()">✕</button></div>
+          <div class="form-row">
+            <div class="form-group"><label class="form-label">التاريخ</label><input class="form-control" id="ex-date" type="date"></div>
+            <div class="form-group"><label class="form-label">نوع المصروف</label><select class="form-control" id="ex-type"><option>ثابت</option><option>متغير</option><option>أخرى</option></select></div>
+          </div>
+          <div class="form-group"><label class="form-label">التشغيلة (اختياري)</label><select class="form-control" id="ex-operation"><option value="">-- عام --</option>${opOpts}</select></div>
+          <div class="form-row">
+            <div class="form-group"><label class="form-label">البند</label><input class="form-control" id="ex-item" placeholder="وقود، سائق، صيانة..."></div>
+            <div class="form-group"><label class="form-label">المبلغ (جنيه)</label><input class="form-control" id="ex-amount" type="number" placeholder="0"></div>
+          </div>
+          <div class="form-group"><label class="form-label">ملاحظات</label><textarea class="form-control" id="ex-notes" rows="2"></textarea></div>
+          <input type="hidden" id="ex-row-index"><input type="hidden" id="ex-id">
+          <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:8px">
+            <button class="btn btn-outline" onclick="ExpensesModule.closeModal()">إلغاء</button>
+            <button class="btn btn-primary" onclick="ExpensesModule.save()">💾 حفظ</button>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  async function renderData() {
+    document.getElementById('ex-loading').style.display = 'none';
+    document.getElementById('ex-table').style.display = 'block';
+    await load();
+    const tbody = document.getElementById('ex-tbody');
+    if (data.length === 0) { document.getElementById('ex-empty').style.display = 'block'; tbody.innerHTML = ''; return; }
+    document.getElementById('ex-empty').style.display = 'none';
+    const badge = { 'ثابت':'badge-blue','متغير':'badge-orange','أخرى':'badge-red' };
+    tbody.innerHTML = data.map(ex => `<tr>
+      <td><code style="font-size:11px;color:var(--text-muted)">${ex.id}</code></td>
+      <td>${ex.operation||'<span style="color:var(--text-muted)">عام</span>'}</td>
+      <td><span class="badge ${badge[ex.type]||'badge-blue'}">${ex.type}</span></td>
+      <td>${ex.item}</td>
+      <td><strong style="color:var(--accent-red)">${ex.amount.toLocaleString()} ج</strong></td>
+      <td>${ex.date}</td>
+      <td><button class="btn btn-sm btn-outline" onclick="ExpensesModule.openEdit(${ex.rowIndex})">✏️</button> <button class="btn btn-sm btn-danger" onclick="ExpensesModule.del(${ex.rowIndex})">🗑️</button></td>
+    </tr>`).join('');
+  }
+
+  function openAdd() {
+    document.getElementById('ex-modal-title').textContent = 'إضافة مصروف';
+    document.getElementById('ex-date').value = new Date().toISOString().split('T')[0];
+    ['ex-operation','ex-item','ex-amount','ex-notes'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('ex-type').value = 'ثابت';
+    document.getElementById('ex-row-index').value = '';
+    document.getElementById('ex-id').value = '';
+    document.getElementById('ex-modal').classList.add('active');
+  }
+
+  function openEdit(idx) {
+    const ex = data.find(x => x.rowIndex === idx); if (!ex) return;
+    document.getElementById('ex-modal-title').textContent = 'تعديل مصروف';
+    document.getElementById('ex-date').value = ex.date;
+    document.getElementById('ex-operation').value = ex.operation;
+    document.getElementById('ex-type').value = ex.type;
+    document.getElementById('ex-item').value = ex.item;
+    document.getElementById('ex-amount').value = ex.amount;
+    document.getElementById('ex-notes').value = ex.notes;
+    document.getElementById('ex-row-index').value = idx;
+    document.getElementById('ex-id').value = ex.id;
+    document.getElementById('ex-modal').classList.add('active');
+  }
+
+  function closeModal() { document.getElementById('ex-modal').classList.remove('active'); }
+
+  async function save() {
+    const d = { id: document.getElementById('ex-id').value, date: document.getElementById('ex-date').value, operation: document.getElementById('ex-operation').value, type: document.getElementById('ex-type').value, item: document.getElementById('ex-item').value, amount: document.getElementById('ex-amount').value, notes: document.getElementById('ex-notes').value };
+    if (!d.item || !d.amount) { showToast('أدخل البند والمبلغ', 'error'); return; }
+    const idx = document.getElementById('ex-row-index').value;
+    try {
+      if (idx) { await update(parseInt(idx), d); showToast('تم التعديل ✅', 'success'); }
+      else { await add(d); showToast('تمت الإضافة ✅', 'success'); }
+      closeModal(); renderData();
+    } catch(e) { showToast('حدث خطأ', 'error'); }
+  }
+
+  async function del(idx) {
+    if (!confirm('هل تريد حذف هذا المصروف؟')) return;
+    try { await remove(idx); showToast('تم الحذف', 'success'); renderData(); } catch(e) { showToast('حدث خطأ', 'error'); }
+  }
+
+  return { renderPage, renderData, openAdd, openEdit, closeModal, save, del, getAll: () => data, load };
+})();
+
+// ===== REPORTS MODULE =====
+const ReportsModule = (() => {
+  function renderPage() {
+    return `
+      <div class="page-header"><h1>📊 التقارير والملخصات</h1><p>الأرباح والملخصات المالية</p></div>
+      <div id="rp-loading" class="loading"><div class="spinner"></div> جاري تحميل البيانات...</div>
+      <div id="rp-content" style="display:none">
+        <div class="stats-grid" id="rp-stats"></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+          <div class="card">
+            <div class="card-header"><span class="card-title">📈 ملخص التشغيلات</span></div>
+            <div class="table-wrap"><table><thead><tr><th>الوجهة</th><th>الرحلات</th><th>الإيرادات</th></tr></thead><tbody id="rp-dest"></tbody></table></div>
+          </div>
+          <div class="card">
+            <div class="card-header"><span class="card-title">💸 ملخص المصاريف</span></div>
+            <div class="table-wrap"><table><thead><tr><th>النوع</th><th>البنود</th><th>المبالغ</th></tr></thead><tbody id="rp-exp"></tbody></table></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header"><span class="card-title">🚌 أداء العربيات</span></div>
+          <div class="table-wrap"><table><thead><tr><th>العربية</th><th>التشغيلات</th><th>الإيرادات</th><th>المصاريف</th><th>صافي الربح</th></tr></thead><tbody id="rp-vehicles"></tbody></table></div>
+        </div>
+      </div>`;
+  }
+
+  async function renderData() {
+    await Promise.all([VehiclesModule.load(), OperationsModule.load(), ExpensesModule.load()]);
+    const ops = OperationsModule.getAll();
+    const exps = ExpensesModule.getAll();
+    const totalRev = ops.reduce((s,op) => s+op.revenue, 0);
+    const totalExp = exps.reduce((s,ex) => s+ex.amount, 0);
+    const net = totalRev - totalExp;
+
+    document.getElementById('rp-loading').style.display = 'none';
+    document.getElementById('rp-content').style.display = 'block';
+
+    document.getElementById('rp-stats').innerHTML = `
+      <div class="stat-card"><div class="stat-icon green">💰</div><div class="stat-info"><h3>${totalRev.toLocaleString()} ج</h3><p>إجمالي الإيرادات</p></div></div>
+      <div class="stat-card"><div class="stat-icon red">💸</div><div class="stat-info"><h3>${totalExp.toLocaleString()} ج</h3><p>إجمالي المصاريف</p></div></div>
+      <div class="stat-card"><div class="stat-icon ${net>=0?'blue':'orange'}">📊</div><div class="stat-info"><h3 style="color:${net>=0?'var(--accent-green)':'var(--accent-red)'}">${net.toLocaleString()} ج</h3><p>صافي الربح</p></div></div>
+      <div class="stat-card"><div class="stat-icon blue">🚀</div><div class="stat-info"><h3>${ops.length}</h3><p>إجمالي التشغيلات</p></div></div>`;
+
+    const destMap = {};
+    ops.forEach(op => { if (!destMap[op.destination]) destMap[op.destination]={count:0,rev:0}; destMap[op.destination].count++; destMap[op.destination].rev+=op.revenue; });
+    document.getElementById('rp-dest').innerHTML = Object.entries(destMap).length===0
+      ? '<tr><td colspan="3" style="text-align:center;color:var(--text-muted)">لا توجد بيانات</td></tr>'
+      : Object.entries(destMap).sort((a,b)=>b[1].rev-a[1].rev).map(([dest,d])=>`<tr><td>${dest}</td><td>${d.count}</td><td><strong style="color:var(--accent-green)">${d.rev.toLocaleString()} ج</strong></td></tr>`).join('');
+
+    const expMap = {};
+    exps.forEach(ex => { if (!expMap[ex.type]) expMap[ex.type]={count:0,amt:0}; expMap[ex.type].count++; expMap[ex.type].amt+=ex.amount; });
+    document.getElementById('rp-exp').innerHTML = Object.entries(expMap).length===0
+      ? '<tr><td colspan="3" style="text-align:center;color:var(--text-muted)">لا توجد بيانات</td></tr>'
+      : Object.entries(expMap).map(([type,d])=>`<tr><td>${type}</td><td>${d.count}</td><td><strong style="color:var(--accent-red)">${d.amt.toLocaleString()} ج</strong></td></tr>`).join('');
+
+    const vMap = {};
+    ops.forEach(op => { if (!vMap[op.vehicle]) vMap[op.vehicle]={count:0,rev:0,exp:0}; vMap[op.vehicle].count++; vMap[op.vehicle].rev+=op.revenue; });
+    exps.forEach(ex => { if (ex.operation) { const op=ops.find(o=>o.id===ex.operation); if(op&&op.vehicle&&vMap[op.vehicle]) vMap[op.vehicle].exp+=ex.amount; } });
+    document.getElementById('rp-vehicles').innerHTML = Object.entries(vMap).length===0
+      ? '<tr><td colspan="5" style="text-align:center;color:var(--text-muted)">لا توجد بيانات</td></tr>'
+      : Object.entries(vMap).map(([plate,d])=>{ const n=d.rev-d.exp; return `<tr><td><strong>${plate}</strong></td><td>${d.count}</td><td style="color:var(--accent-green)">${d.rev.toLocaleString()} ج</td><td style="color:var(--accent-red)">${d.exp.toLocaleString()} ج</td><td><strong style="color:${n>=0?'var(--accent-green)':'var(--accent-red)'}">${n.toLocaleString()} ج</strong></td></tr>`; }).join('');
+  }
+
+  return { renderPage, renderData };
+})();
+
+// ===== APP =====
+const App = (() => {
+  let current = 'home';
+
+  async function navigate(page) {
+    current = page;
+    document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+    const nav = document.getElementById(`nav-${page}`);
+    if (nav) nav.classList.add('active');
+    const main = document.getElementById('main-content');
+
+    if (page === 'home') {
+      await renderHome();
+    } else if (page === 'vehicles') {
+      main.innerHTML = VehiclesModule.renderPage();
+      VehiclesModule.renderData();
+    } else if (page === 'operations') {
+      await VehiclesModule.load();
+      main.innerHTML = OperationsModule.renderPage();
+      OperationsModule.renderData();
+    } else if (page === 'expenses') {
+      await OperationsModule.load();
+      main.innerHTML = ExpensesModule.renderPage();
+      ExpensesModule.renderData();
+    } else if (page === 'reports') {
+      main.innerHTML = ReportsModule.renderPage();
+      ReportsModule.renderData();
+    }
+  }
+
+  async function renderHome() {
+    const main = document.getElementById('main-content');
+    const dateStr = new Date().toLocaleDateString('ar-EG', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
+    main.innerHTML = `
+      <div class="home-banner">
+        <div class="date">${dateStr}</div>
+        <h2>👋 أهلاً بك في نظام Oceanus</h2>
+        <p>البيانات على Google Sheets – تشتغل من أي جهاز</p>
+      </div>
+      <div id="home-stats" class="stats-grid"><div class="loading"><div class="spinner"></div> جاري التحميل...</div></div>
+      <div class="quick-links">
+        <div class="quick-card vehicles" onclick="App.navigate('vehicles')"><div class="q-icon">🚌</div><h3>العربيات</h3><p>إدارة الأسطول</p></div>
+        <div class="quick-card operations" onclick="App.navigate('operations')"><div class="q-icon">🚀</div><h3>التشغيلات</h3><p>الرحلات والإيرادات</p></div>
+        <div class="quick-card expenses" onclick="App.navigate('expenses')"><div class="q-icon">💸</div><h3>المصاريف</h3><p>ثابتة ومتغيرة وأخرى</p></div>
+        <div class="quick-card reports" onclick="App.navigate('reports')"><div class="q-icon">📊</div><h3>التقارير</h3><p>الأرباح والملخصات</p></div>
+      </div>
+      <div class="bottom-grid">
+        <div class="card">
+          <div class="card-header"><span class="card-title">💸 آخر المصاريف</span><button class="btn btn-sm btn-outline" onclick="App.navigate('expenses')">عرض الكل</button></div>
+          <div id="home-last-exp"><div class="loading"><div class="spinner"></div></div></div>
+        </div>
+        <div class="card">
+          <div class="card-header"><span class="card-title">🚀 آخر التشغيلات</span><button class="btn btn-sm btn-outline" onclick="App.navigate('operations')">عرض الكل</button></div>
+          <div id="home-last-ops"><div class="loading"><div class="spinner"></div></div></div>
+        </div>
+      </div>`;
+
+    try {
+      await Promise.all([VehiclesModule.load(), OperationsModule.load(), ExpensesModule.load()]);
+      const vs = VehiclesModule.getAll(), ops = OperationsModule.getAll(), exps = ExpensesModule.getAll();
+      const totalRev = ops.reduce((s,op)=>s+op.revenue,0);
+      const totalExp = exps.reduce((s,ex)=>s+ex.amount,0);
+      const net = totalRev - totalExp;
+
+      document.getElementById('home-stats').innerHTML = `
+        <div class="stat-card"><div class="stat-icon blue">🚌</div><div class="stat-info"><h3>${vs.length}</h3><p>إجمالي العربيات</p></div></div>
+        <div class="stat-card"><div class="stat-icon orange">🚀</div><div class="stat-info"><h3>${ops.length}</h3><p>إجمالي التشغيلات</p></div></div>
+        <div class="stat-card"><div class="stat-icon green">💰</div><div class="stat-info"><h3>${totalRev.toLocaleString()} ج</h3><p>إجمالي الإيرادات</p></div></div>
+        <div class="stat-card"><div class="stat-icon ${net>=0?'blue':'red'}">📊</div><div class="stat-info"><h3 style="color:${net>=0?'var(--accent-green)':'var(--accent-red)'}">${net.toLocaleString()} ج</h3><p>صافي الربح</p></div></div>`;
+
+      const lastOps = ops.slice(-5).reverse();
+      document.getElementById('home-last-ops').innerHTML = lastOps.length===0
+        ? '<div class="empty-state"><p>لا توجد تشغيلات بعد</p></div>'
+        : `<table style="width:100%;font-size:13px">${lastOps.map(op=>`<tr><td style="padding:8px 0;border-bottom:1px solid var(--border)">${op.date}</td><td style="padding:8px 0;border-bottom:1px solid var(--border)">${op.destination}</td><td style="padding:8px 0;border-bottom:1px solid var(--border);color:var(--accent-green);font-weight:700">${op.revenue.toLocaleString()} ج</td></tr>`).join('')}</table>`;
+
+      const lastExp = exps.slice(-5).reverse();
+      document.getElementById('home-last-exp').innerHTML = lastExp.length===0
+        ? '<div class="empty-state"><p>لا توجد مصاريف بعد</p></div>'
+        : `<table style="width:100%;font-size:13px">${lastExp.map(ex=>`<tr><td style="padding:8px 0;border-bottom:1px solid var(--border)">${ex.date}</td><td style="padding:8px 0;border-bottom:1px solid var(--border)">${ex.item}</td><td style="padding:8px 0;border-bottom:1px solid var(--border);color:var(--accent-red);font-weight:700">${ex.amount.toLocaleString()} ج</td></tr>`).join('')}</table>`;
+    } catch(e) {
+      document.getElementById('home-stats').innerHTML = '<div class="empty-state"><p>❌ خطأ في تحميل البيانات</p></div>';
+    }
+  }
+
+  async function refresh() { showToast('جاري التحديث...'); navigate(current); }
+
+  function exportData() {
+    const data = { operations: OperationsModule.getAll(), expenses: ExpensesModule.getAll(), date: new Date().toISOString() };
+    const blob = new Blob([JSON.stringify(data,null,2)], { type:'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `oceanus-${new Date().toISOString().split('T')[0]}.json`;
+    a.click();
+    showToast('تم التصدير ✅', 'success');
+  }
+
+  async function init() {
+    try {
+      showToast('جاري تهيئة النظام...');
+      await SheetsAPI.initSheets();
+      navigate('home');
+    } catch(e) {
+      document.getElementById('main-content').innerHTML = `
+        <div class="card" style="margin-top:40px;text-align:center;padding:40px">
+          <div style="font-size:40px;margin-bottom:16px">❌</div>
+          <h2 style="color:var(--accent-red)">خطأ في الاتصال</h2>
+          <p style="color:var(--text-muted);margin-top:8px">تحقق من الـ credentials وحاول مرة أخرى</p>
+          <button class="btn btn-primary" style="margin-top:16px" onclick="App.init()">إعادة المحاولة</button>
+        </div>`;
+    }
+  }
+
+  return { navigate, refresh, exportData, init };
+})();
+
+App.init();
+</script>
+</body>
+</html>
+
+
